@@ -17,6 +17,11 @@ enclosure. The Step Mother's PCB and enclosure are open hardware too, in the
 | Firmware file | `StepMother_firmware_v<version>.hex` |
 | Installed with | StepDaddy, or Teensy Loader |
 
+## Where to buy
+
+Assembled Step Mothers are handmade in small batches in Lausanne, Switzerland:
+**[Step Mother on Ko-fi](https://ko-fi.com/s/28225d3770)**.
+
 ## Download and install
 
 Get StepDaddy for macOS or Windows from the [Releases](../../releases) page
@@ -31,6 +36,8 @@ before anything else, so it works even if the rest of the firmware misbehaves.
 
 ## Documentation
 
+- **Video tutorials:** [general introduction](https://youtu.be/5FidxB0JIPQ) and
+  [beat programming (StepBro)](https://youtu.be/w0sGw5nPOf4).
 - **User manuals** (PDF): [StepBro](docs/manuals/StepBro_User_Manual_v1.0.0.pdf)
   and [Yummy Gummy](docs/manuals/Yummy_User_Manual_v1.0.0.pdf).
 - **[Developer guide](docs/DEVELOPER_GUIDE.md)**: changing the firmware,
