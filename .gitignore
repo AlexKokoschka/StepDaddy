@@ -1,0 +1,25 @@
+__pycache__/
+*.pyc
+*.spec
+# build output
+build/
+build_*/
+dist/
+firmware/*/tests/build/
+firmware/*/build-final.log
+firmware/*/tests-final.log
+# compiler temporaries and the voice host-test programs
+*.s
+firmware/*/voice/render
+firmware/*/voice/render_check
+firmware/*/voice/midi_lead_test
+firmware/*/voice/od_chord_test
+firmware/*/voice/knob_behavior_test
+firmware/*/voice/dsp_curve_test
+firmware/*/voice/automation_stress_test
+firmware/*/voice/profile_test
+firmware/*/voice/out/
+# archived projects' generated files
+firmware/*/voice/midi_lead_ubsan
+firmware/*/voice/od_chord_ubsan
+firmware/*/verify.log

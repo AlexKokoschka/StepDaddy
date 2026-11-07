@@ -1,0 +1,344 @@
+name: Build firmware and StepDaddy
+
+# The Step Mother firmware (StepBro and Yummy Gummy in one; Teensy 4.1,
+# pinned Teensyduino subset in firmware/StepMother/vendor): build, host tests
+# and release checks (memory guards, USB name, version tag). StepDaddy, the
+# updater, bundles the image.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  # =========================================================================
+  version:
+    name: Firmware version
+    runs-on: ubuntu-24.04 # pinned: ubuntu-latest moves to Ubuntu 26 from Oct 2026
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Read FIRMWARE_VERSION_STRING
+        id: v
+        run: |
+          S=$(sed -n 's/^#define FIRMWARE_VERSION_STRING "\(.*\)"/\1/p' firmware/StepMother/src/firmware_version.h)
+          if [ -z "$S" ]; then
+            echo "::error::firmware/StepMother/src/firmware_version.h: FIRMWARE_VERSION_STRING not set"
+            exit 1
+          fi
+          echo "version=$S" >> "$GITHUB_OUTPUT"
+          echo "Firmware v$S"
+
+  # =========================================================================
+  mother:
+    name: Step Mother (Teensy 4.1)
+    needs: version
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: firmware/StepMother
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Cache the ARM toolchain
+        uses: actions/cache@v4
+        with:
+          path: ~/arm-gnu-toolchain
+          key: arm-gnu-toolchain-13.2.rel1-x86_64
+
+      - name: Install toolchain
+        timeout-minutes: 15
+        working-directory: .
+        run: |
+          .github/scripts/arm-toolchain.sh ~/arm-gnu-toolchain
+          echo "ARM_TOOLCHAIN=$HOME/arm-gnu-toolchain" >> "$GITHUB_ENV"
+
+      - name: Build (vendored Teensyduino 1.62.0 subset, patched copies in build/)
+        run: |
+          python3 tools/build_teensy.py > build-final.log 2>&1 ||
+            { tail -25 build-final.log | sed 's/^/::error::/'; exit 1; }
+          tail -3 build-final.log
+
+      - name: Host tests
+        run: |
+          sh tests/run.sh > tests-final.log 2>&1 || { tail -25 tests-final.log | sed 's/^/::error::/'; exit 1; }
+          grep "^PASS" tests-final.log
+
+      - name: Release checks (HEX, 48 kHz descriptors, memory, USB name, version tag)
+        run: |
+          python3 tools/verify_teensy.py > verify.log 2>&1 || { tail -15 verify.log | sed 's/^/::error::/'; exit 1; }
+          cat verify.log
+
+      - name: Collect
+        run: |
+          V="${{ needs.version.outputs.version }}"
+          mkdir -p "$GITHUB_WORKSPACE/out"
+          cp build/StepMother_firmware.hex "$GITHUB_WORKSPACE/out/StepMother_firmware_v${V}.hex"
+          cp build/StepMother_firmware.hex "$GITHUB_WORKSPACE/out/StepMother_firmware.hex"
+          ls -la "$GITHUB_WORKSPACE/out"
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: mother
+          path: out/
+
+  # =========================================================================
+  # StepDaddy against simulated drives and a simulated Teensy loader, with
+  # the images just built.
+  stepdaddy-tests:
+    name: StepDaddy tests
+    needs: [mother]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v6
+        with:
+          name: mother
+          path: incoming
+      - name: Tests
+        run: python3 updater/test_step_daddy.py incoming/StepMother_firmware.hex
+
+  # =========================================================================
+  updater:
+    name: StepDaddy (${{ matrix.label }})
+    needs: [version, mother, stepdaddy-tests]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            label: Windows
+            artifact: StepDaddy-Windows
+          - os: macos-latest
+            label: macOS
+            artifact: StepDaddy-macOS
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/download-artifact@v6
+        with:
+          name: mother
+          path: updater/
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install PyInstaller
+        # pyserial: asks a Teensy with USB Serial to restart into update mode
+        run: python -m pip install --upgrade pip pyinstaller pyserial==3.5
+
+      - name: Fetch teensy_loader_cli source
+        run: git clone --depth 1 https://github.com/PaulStoffregen/teensy_loader_cli.git tlc
+
+      # -- macOS: builds against IOKit, no external dependencies ------------
+      # Builds against IOKit/CoreFoundation, no external dependencies.
+      # Produces a native arm64 binary on the arm64 runners.
+      - name: Build teensy_loader_cli (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          set -e
+          cd tlc
+          make OS=MACOSX CC=clang || make OS=MACOSX
+          test -f teensy_loader_cli || {
+            echo "::error::teensy_loader_cli was not produced"; exit 1; }
+          cp teensy_loader_cli ../updater/
+          chmod +x ../updater/teensy_loader_cli
+          file ../updater/teensy_loader_cli || true
+
+      # -- Windows: needs a MinGW toolchain ---------------------------------
+      - name: Set up MSYS2
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: false
+          install: >-
+            make
+            mingw-w64-ucrt-x86_64-gcc
+
+      # The upstream Makefile hardcodes CC = i586-mingw32msvc-gcc for
+      # OS=WINDOWS — a Debian cross-compiler that does not exist in MSYS2.
+      # We compile natively, so skip the Makefile's OS branch entirely and
+      # invoke the compiler directly: fewer assumptions about what upstream's
+      # WINDOWS target does, and the flags are visible here.
+      #
+      # Failures are echoed back as ::error:: annotations because the raw run
+      # logs are not always retrievable; annotations come through the API.
+      - name: Build teensy_loader_cli (Windows)
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: |
+          cd tlc
+          echo "::group::toolchain"
+          which gcc || echo "gcc NOT on PATH"
+          gcc --version 2>&1 | head -2 || true
+          ls -la
+          echo "::endgroup::"
+
+          echo "::group::available HID headers"
+          ls /ucrt64/include/ | grep -i '^hid' || echo "no hid* headers found"
+          echo "::endgroup::"
+
+          # teensy_loader_cli.c includes <ddk/hidsdi.h> and <ddk/hidclass.h>.
+          # That ddk/ prefix is where the old i586-mingw32msvc cross-compiler
+          # kept them; mingw-w64 ships the same headers at the top level. Rather
+          # than patch upstream source, drop a shim directory on the include
+          # path that forwards ddk/<name> to <name>.
+          mkdir -p shim/ddk
+          for h in hidsdi hidclass hidpi hidusage; do
+            if [ -f "/ucrt64/include/${h}.h" ]; then
+              echo "#include <${h}.h>" > "shim/ddk/${h}.h"
+              echo "shim: ddk/${h}.h -> ${h}.h"
+            fi
+          done
+
+          # USE_WIN32 selects the Win32 HID backend. -lhid -lsetupapi are the
+          # Windows HID APIs; -lwinmm provides timeGetTime().
+          set +e
+          gcc -O2 -Wall -DUSE_WIN32 -Ishim -o teensy_loader_cli.exe \
+              teensy_loader_cli.c -lhid -lsetupapi -lwinmm > build.log 2>&1
+          rc=$?
+          set -e
+
+          if [ $rc -ne 0 ] || [ ! -f teensy_loader_cli.exe ]; then
+            echo "::group::build log"; cat build.log; echo "::endgroup::"
+            echo "::error::teensy_loader_cli build failed (exit $rc). First lines:"
+            head -8 build.log | while IFS= read -r line; do
+              echo "::error::$line"
+            done
+            exit 1
+          fi
+
+          cat build.log || true
+          cp teensy_loader_cli.exe ../updater/
+          file teensy_loader_cli.exe || true
+
+      - name: Stamp the firmware version into StepDaddy
+        shell: bash
+        run: |
+          V="${{ needs.version.outputs.version }}"
+          python - "$V" <<'PY'
+          import re, sys, pathlib
+          version = sys.argv[1]
+          p = pathlib.Path("updater/step_daddy.py")
+          src = p.read_text(encoding="utf-8")
+          new, n = re.subn(r'^FIRMWARE_VERSION = ".*"$',
+                           f'FIRMWARE_VERSION = "{version}"',
+                           src, count=1, flags=re.M)
+          if n != 1:
+              sys.exit("FIRMWARE_VERSION line not found in step_daddy.py")
+          p.write_text(new, encoding="utf-8")
+          print(f"stamped v{version}")
+          PY
+
+      - name: Build the executable
+        shell: bash
+        run: |
+          cd updater
+          # PyInstaller's --add-data separator is os.pathsep.
+          if [ "${{ runner.os }}" = "Windows" ]; then SEP=";"; else SEP=":"; fi
+          LOADER=$([ "${{ runner.os }}" = "Windows" ] && echo teensy_loader_cli.exe || echo teensy_loader_cli)
+          pyinstaller --onefile --clean --noconfirm \
+            --name StepDaddy \
+            --add-data "StepMother_firmware.hex${SEP}." \
+            --add-binary "${LOADER}${SEP}." \
+            step_daddy.py
+          ls -la dist
+
+      - name: Smoke-test the executable
+        shell: bash
+        run: |
+          cd updater/dist
+          # Note the leading ./ — bash on Windows does not put . on PATH.
+          BIN=$([ "${{ runner.os }}" = "Windows" ] && echo ./StepDaddy.exe || echo ./StepDaddy)
+          OUT=$("$BIN" --version)
+          echo "reported version: $OUT"
+          if [ -z "$OUT" ] || [ "$OUT" != "${{ needs.version.outputs.version }}" ]; then
+            echo "::error::executable reports '$OUT', expected '${{ needs.version.outputs.version }}'"
+            exit 1
+          fi
+
+      - name: Package macOS build
+        if: runner.os == 'macOS'
+        run: |
+          cd updater/dist
+          # A plain .dmg containing the executable. Unsigned — see updater/README.md.
+          mkdir -p dmgroot
+          cp StepDaddy dmgroot/
+          hdiutil create -volname "StepDaddy" -srcfolder dmgroot \
+            -ov -format UDZO StepDaddy.dmg
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            updater/dist/StepDaddy
+            updater/dist/StepDaddy.exe
+            updater/dist/StepDaddy.dmg
+          if-no-files-found: error
+
+  # =========================================================================
+  # Everything CI produces is also mirrored onto a `builds` branch, rewritten
+  # as a single orphan commit each time (latest build only). Main only.
+  publish:
+    name: Publish binaries to the builds branch
+    needs: [version, mother, updater]
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/download-artifact@v6
+        with:
+          path: incoming
+
+      - name: Rewrite the builds branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          V="${{ needs.version.outputs.version }}"
+          SHA_SHORT=$(git rev-parse --short HEAD)
+          STAGE=$(mktemp -d)
+          mkdir -p "$STAGE/firmware" "$STAGE/updater"
+          cp "incoming/mother/StepMother_firmware_v${V}.hex" "$STAGE/firmware/"
+          cp incoming/StepDaddy-macOS/StepDaddy.dmg "$STAGE/updater/StepDaddy-macOS-v${V}.dmg"
+          cp incoming/StepDaddy-Windows/StepDaddy.exe "$STAGE/updater/StepDaddy-Windows-v${V}.exe"
+          {
+            echo "# Step Mother firmware v${V}"
+            echo
+            echo "Built by CI from commit \`${SHA_SHORT}\` on branch main."
+            echo "Rewritten on every build; do not edit or commit here by hand."
+            echo
+            echo "StepBro and the Yummy Gummy synth in one firmware"
+            echo "(Shift + Bank + Play switches between them)."
+            echo
+            echo "| Board | File | Installed with |"
+            echo "|---|---|---|"
+            echo "| Step Mother (Teensy 4.1) | \`firmware/StepMother_firmware_v${V}.hex\` | StepDaddy, or Teensy Loader |"
+            echo
+            echo "## StepDaddy (the updater)"
+            echo
+            echo "| Platform | File |"
+            echo "|---|---|"
+            echo "| macOS (Apple Silicon) | \`updater/StepDaddy-macOS-v${V}.dmg\` |"
+            echo "| Windows (x64) | \`updater/StepDaddy-Windows-v${V}.exe\` |"
+            echo
+            echo "Both are unsigned, so each OS warns once on first run."
+            echo "See \`updater/README.md\` on main for how to get past that."
+          } > "$STAGE/README.md"
+          cd "$STAGE"
+          git init -q -b builds
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Firmware v${V} built from ${SHA_SHORT} [skip ci]"
+          git push -q --force \
+            "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+            builds:builds
+          echo "Published v${V} to the builds branch."

@@ -1,0 +1,23 @@
+Step Daddy
+Copyright (C) 2026 Alex Kokoschka
+Licensed under the GNU General Public License, version 3 or later (LICENSE).
+
+Third-party software
+====================
+
+firmware/StepMother/vendor/ contains a subset of PJRC Teensyduino 1.62.0,
+patched locally at build time by firmware/StepMother/tools/build_teensy.py.
+Each file keeps its original copyright notice and license:
+
+- cores/teensy4 (Teensy 4 core library): Copyright (c) PJRC.COM, LLC and
+  contributors. MIT-style license (see each file's header), except the files
+  derived from the Arduino core (Client.h, IPAddress.cpp, Printable.h,
+  Server.h, Stream.cpp/.h, Time.cpp, WCharacter.h, WMath.cpp, WString.cpp/.h),
+  which are under the GNU Lesser General Public License 2.1 or later.
+- libraries/LittleFS: Copyright (c) 2020 Paul Stoffregen, MIT license;
+  libraries/LittleFS/src/littlefs: Copyright (c) 2017 Arm Limited,
+  BSD-3-Clause (LICENSE.md in that folder).
+- libraries/SPI: Copyright (c) 2010 Cristian Maglie, (c) 2014 Paul Stoffregen,
+  (c) 2014 Matthijs Kooijman; GNU GPL 2 or GNU LGPL 2.1 (see SPI.h).
+- libraries/Wire: Copyright (c) 2006 Nicholas Zambetti and contributors,
+  GNU Lesser General Public License 2.1 or later.
