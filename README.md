@@ -18,6 +18,21 @@ enclosure. The Step Mother's PCB and enclosure are open hardware too, in the
 | Firmware file | `StepMother_firmware_v<version>.hex` | `StepMother2_firmware_v<version>.uf2` |
 | Installed with | StepDaddy, or Teensy Loader | StepDaddy, or copy onto the RPI-RP2 drive |
 
+## Why a second board: the Step Mother 2
+
+The Step Mother 2 swaps the Teensy 4.1 for an RP2040 on the same panel and the
+same firmware.
+
+- **Easier to source.** The RP2040 is a widely stocked chip, where the Teensy
+  module is a single-supplier part.
+- **Lower cost.** An RP2040 on the board costs less than a Teensy module.
+- **Fully machine-assembled.** The Teensy is a through-hole module that has to
+  be soldered by hand. The RP2040 is surface-mounted, so the whole board can go
+  through SMD assembly: less time, less cost, fewer soldering errors.
+- **USB-C.** The Teensy's micro-USB socket is replaced by a USB-C connector.
+
+The Step Mother 1 (Teensy 4.1) stays supported, and one StepDaddy updates both.
+
 ## Where to buy
 
 Assembled Step Mothers are handmade in small batches in Lausanne, Switzerland:

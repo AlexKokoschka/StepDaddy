@@ -2,6 +2,10 @@
 
 The same StepBro and Yummy Gummy firmware as the Step Mother 1, built for the
 RP2040 (200 MHz, 48 kHz USB audio and MIDI). It shows up as "Step Mother".
+Why the RP2040: it is easier to source and cheaper than a Teensy module, it is
+surface-mounted so the whole board can be machine-assembled (no hand soldering,
+fewer errors), and the USB socket is now USB-C instead of micro-USB.
+
 Everything below this entry is the history of the RP2040 firmware before this
 release.
 
