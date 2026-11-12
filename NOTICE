@@ -5,6 +5,12 @@ Licensed under the GNU General Public License, version 3 or later (LICENSE).
 Third-party software
 ====================
 
+firmware/StepMother2/ (the RP2040 firmware) is built against, and not
+distributed with, the Raspberry Pi Pico SDK 2.1.1 (BSD-3-Clause, Copyright (c)
+Raspberry Pi (Trading) Ltd.) and TinyUSB (MIT, Copyright (c) hathach, tinyusb.org
+and contributors), which CI fetches at build time. The resulting firmware image
+contains code from both; their license texts are in those projects.
+
 firmware/StepMother/vendor/ contains a subset of PJRC Teensyduino 1.62.0,
 patched locally at build time by firmware/StepMother/tools/build_teensy.py.
 Each file keeps its original copyright notice and license:

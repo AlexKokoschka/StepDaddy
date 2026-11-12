@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.0
+
+- No changes to the Teensy firmware. The version is raised so that the Step
+  Mother 1 (Teensy 4.1) and the new Step Mother 2 (RP2040, `firmware/StepMother2`)
+  share one number, and StepDaddy installs either.
+
 ## 1.0.0 (first public release)
 
 **StepBro** (MIDI step sequencer)

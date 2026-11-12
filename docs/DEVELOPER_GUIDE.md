@@ -1,6 +1,6 @@
 # Step Mother developer guide
 
-Firmware 1.0.0 · November 2026
+Firmware 1.1.0 · November 2026
 
 ## Overview
 
@@ -16,7 +16,14 @@ Shift + Bank + Play switches the panel between them, and both keep playing.
 
 | Board | Chip | Clock | Firmware file | Installs through |
 |---|---|---|---|---|
-| Step Mother | Teensy 4.1 (i.MX RT1062, one core) | 600 MHz | `.hex` | The Teensy bootloader |
+| Step Mother 1 | Teensy 4.1 (i.MX RT1062, one core) | 600 MHz | `.hex` | The Teensy bootloader |
+| Step Mother 2 | RP2040 (two cores) | 200 MHz | `.uf2` | The RPI-RP2 drive (copy the file onto it) |
+
+The two boards run the same firmware, built separately: the Teensy one in
+`firmware/StepMother/`, the RP2040 one in `firmware/StepMother2/` (Pico SDK 2.1.1,
+CMake, Arm GNU 13.2.Rel1; its README has the build commands). Most of this guide
+is written for the Teensy; the RP2040 differences are in
+[the RP2040 notes](#step-mother-2-rp2040).
 
 This guide covers three paths:
 
@@ -60,7 +67,8 @@ export ARM_TOOLCHAIN=~/arm-gnu-toolchain   # where the ARM toolchain was unpacke
 
 | Path | What it is |
 |---|---|
-| `firmware/StepMother/` | The firmware: `src/`, `voice/`, `tests/`, `tools/`, plus `vendor/avr/` (Teensyduino 1.62.0) and `compat/` |
+| `firmware/StepMother/` | The Step Mother 1 firmware: `src/`, `voice/`, `tests/`, `tools/`, plus `vendor/avr/` (Teensyduino 1.62.0) and `compat/` |
+| `firmware/StepMother2/` | The Step Mother 2 (RP2040) firmware: `src/`, `voice/`, `tests/`, `tools/` |
 | `updater/` | StepDaddy, the updater (`step_daddy.py`), and its tests |
 | `.github/workflows/build.yml` | Builds, tests and publishes everything on every push |
 
@@ -281,6 +289,23 @@ Install PJRC's Teensy Loader (it comes with Teensyduino, or on its own from
 pjrc.com). Open the `.hex` in it and turn on Auto. Then hold Glide + Function
 while plugging in USB; the loader programs the board and restarts it.
 
+### Step Mother 2 (RP2040)
+
+StepDaddy detects an RP2040 that is already in update mode, copies the `.uf2`
+onto its RPI-RP2 drive and the board restarts by itself. To get into update mode
+hold Glide + Function while plugging in USB (Shift + Clear on older panels); a
+brand-new board opens RPI-RP2 on its own. There is no USB serial port on this
+firmware, so unlike the Teensy it cannot be restarted into update mode without
+the keys. If StepDaddy can find neither board it asks which one you have. Use
+`--product mother2` to skip detection. Without StepDaddy: copy
+`StepMother2_firmware_v<version>.uf2` onto the RPI-RP2 drive yourself.
+
+Build: `cd firmware/StepMother2`, set `PICO_SDK_PATH` and `PICO_TOOLCHAIN_PATH`
+as in its README, then `cmake -S . -B build`, `cmake --build build`,
+`sh tests/run.sh` and `python3 tools/verify_release.py`. Saves live in two flash
+banks at 0x30000 and 0x38000 that an update leaves untouched; the linker stops
+the build if the program grows into them.
+
 ### Brand-new boards
 
 A new Teensy may not answer StepDaddy's no-keys restart, and the panel
@@ -305,9 +330,12 @@ that, everything works with the case shut.
 
 ## Reference
 
-### Limits that shape changes (1.0.0)
+### Limits that shape changes (1.1.0)
 
-| Resource | Step Mother |
+Teensy 4.1 (Step Mother 1). For the RP2040 see `firmware/StepMother2/README.md`:
+about 12.5 KiB of static RAM margin, program and constants run from RAM.
+
+| Resource | Step Mother 1 |
 |---|---|
 | RAM | 1 MB; DTCM gap about 210 KB |
 | Largest RAM user | Yummy's delay line, 96 KB (about 1 s at 48 kHz) |

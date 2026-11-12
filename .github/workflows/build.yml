@@ -1,9 +1,10 @@
 name: Build firmware and StepDaddy
 
-# The Step Mother firmware (StepBro and Yummy Gummy in one; Teensy 4.1,
-# pinned Teensyduino subset in firmware/StepMother/vendor): build, host tests
+# The Step Mother firmware (StepBro and Yummy Gummy in one): Step Mother 1
+# (Teensy 4.1, pinned Teensyduino subset in firmware/StepMother/vendor) and
+# Step Mother 2 (RP2040, Pico SDK, firmware/StepMother2): build, host tests
 # and release checks (memory guards, USB name, version tag). StepDaddy, the
-# updater, bundles the image.
+# updater, bundles both images.
 on:
   push:
     branches: [main]
@@ -19,12 +20,13 @@ jobs:
       version: ${{ steps.v.outputs.version }}
     steps:
       - uses: actions/checkout@v5
-      - name: Read FIRMWARE_VERSION_STRING
+      - name: Read FIRMWARE_VERSION_STRING (both boards must agree)
         id: v
         run: |
-          S=$(sed -n 's/^#define FIRMWARE_VERSION_STRING "\(.*\)"/\1/p' firmware/StepMother/src/firmware_version.h)
-          if [ -z "$S" ]; then
-            echo "::error::firmware/StepMother/src/firmware_version.h: FIRMWARE_VERSION_STRING not set"
+          read_v() { sed -n 's/^#define FIRMWARE_VERSION_STRING "\(.*\)"/\1/p' "firmware/$1/src/firmware_version.h"; }
+          S=$(read_v StepMother); R=$(read_v StepMother2)
+          if [ -z "$S" ] || [ "$S" != "$R" ]; then
+            echo "::error::firmware_version.h: Step Mother 1 '$S', Step Mother 2 '$R' (must be set and equal)"
             exit 1
           fi
           echo "version=$S" >> "$GITHUB_OUTPUT"
@@ -84,11 +86,78 @@ jobs:
           path: out/
 
   # =========================================================================
+  mother2:
+    name: Step Mother 2 (RP2040)
+    needs: version
+    runs-on: ubuntu-24.04
+    env:
+      PICO_SDK_VERSION: "2.1.1"   # its lib/tinyusb is the pinned 86ad6e5
+    defaults:
+      run:
+        working-directory: firmware/StepMother2
+    steps:
+      - uses: actions/checkout@v5
+
+      # ARM's compiler, cached between runs (Ubuntu's package builds slightly
+      # larger code, enough to fail the memory check): see the script.
+      - name: Cache the ARM toolchain
+        uses: actions/cache@v4
+        with:
+          path: ~/arm-gnu-toolchain
+          key: arm-gnu-toolchain-13.2.rel1-x86_64
+
+      - name: Install toolchain
+        timeout-minutes: 15
+        working-directory: .
+        run: .github/scripts/arm-toolchain.sh ~/arm-gnu-toolchain
+
+      - name: Fetch pico-sdk
+        run: |
+          git clone --depth 1 -b "$PICO_SDK_VERSION" https://github.com/raspberrypi/pico-sdk.git "$RUNNER_TEMP/pico-sdk"
+          git -C "$RUNNER_TEMP/pico-sdk" submodule update --init --depth 1 lib/tinyusb
+          echo "PICO_SDK_PATH=$RUNNER_TEMP/pico-sdk" >> "$GITHUB_ENV"
+          echo "PICO_TOOLCHAIN_PATH=$HOME/arm-gnu-toolchain" >> "$GITHUB_ENV"
+
+      # Failures are echoed as ::error:: annotations: raw logs aren't always
+      # retrievable, annotations come through the API.
+      - name: Build
+        run: |
+          # the default (Makefile) generator, as in the README: verify_release.py
+          # looks for its "Built target stepmother2" line
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release > build-final.log 2>&1 &&
+            cmake --build build --parallel 4 >> build-final.log 2>&1 ||
+            { tail -25 build-final.log | sed 's/^/::error::/'; exit 1; }
+          tail -3 build-final.log
+
+      - name: Host tests
+        run: |
+          sh tests/run.sh > tests-final.log 2>&1 || { tail -25 tests-final.log | sed 's/^/::error::/'; exit 1; }
+          grep "^PASS" tests-final.log
+
+      - name: Release checks (UF2, flash guard, RAM, USB name, version tag)
+        run: |
+          python3 tools/verify_release.py > verify.log 2>&1 || { tail -15 verify.log | sed 's/^/::error::/'; exit 1; }
+          cat verify.log
+
+      - name: Collect
+        run: |
+          V="${{ needs.version.outputs.version }}"
+          mkdir -p "$GITHUB_WORKSPACE/out"
+          cp dist/StepMother2_firmware.uf2 "$GITHUB_WORKSPACE/out/StepMother2_firmware_v${V}.uf2"
+          cp dist/StepMother2_firmware.uf2 "$GITHUB_WORKSPACE/out/StepMother2_firmware.uf2"
+          ls -la "$GITHUB_WORKSPACE/out"
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: mother2
+          path: out/
+
+  # =========================================================================
   # StepDaddy against simulated drives and a simulated Teensy loader, with
   # the images just built.
   stepdaddy-tests:
     name: StepDaddy tests
-    needs: [mother]
+    needs: [mother, mother2]
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
@@ -96,13 +165,17 @@ jobs:
         with:
           name: mother
           path: incoming
+      - uses: actions/download-artifact@v6
+        with:
+          name: mother2
+          path: incoming
       - name: Tests
-        run: python3 updater/test_step_daddy.py incoming/StepMother_firmware.hex
+        run: python3 updater/test_step_daddy.py incoming/StepMother_firmware.hex incoming/StepMother2_firmware.uf2
 
   # =========================================================================
   updater:
     name: StepDaddy (${{ matrix.label }})
-    needs: [version, mother, stepdaddy-tests]
+    needs: [version, mother, mother2, stepdaddy-tests]
     strategy:
       fail-fast: false
       matrix:
@@ -120,6 +193,11 @@ jobs:
       - uses: actions/download-artifact@v6
         with:
           name: mother
+          path: updater/
+
+      - uses: actions/download-artifact@v6
+        with:
+          name: mother2
           path: updater/
 
       - uses: actions/setup-python@v6
@@ -244,6 +322,7 @@ jobs:
           pyinstaller --onefile --clean --noconfirm \
             --name StepDaddy \
             --add-data "StepMother_firmware.hex${SEP}." \
+            --add-data "StepMother2_firmware.uf2${SEP}." \
             --add-binary "${LOADER}${SEP}." \
             step_daddy.py
           ls -la dist
@@ -285,7 +364,7 @@ jobs:
   # as a single orphan commit each time (latest build only). Main only.
   publish:
     name: Publish binaries to the builds branch
-    needs: [version, mother, updater]
+    needs: [version, mother, mother2, updater]
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     permissions:
@@ -307,6 +386,7 @@ jobs:
           STAGE=$(mktemp -d)
           mkdir -p "$STAGE/firmware" "$STAGE/updater"
           cp "incoming/mother/StepMother_firmware_v${V}.hex" "$STAGE/firmware/"
+          cp "incoming/mother2/StepMother2_firmware_v${V}.uf2" "$STAGE/firmware/"
           cp incoming/StepDaddy-macOS/StepDaddy.dmg "$STAGE/updater/StepDaddy-macOS-v${V}.dmg"
           cp incoming/StepDaddy-Windows/StepDaddy.exe "$STAGE/updater/StepDaddy-Windows-v${V}.exe"
           {
@@ -320,7 +400,8 @@ jobs:
             echo
             echo "| Board | File | Installed with |"
             echo "|---|---|---|"
-            echo "| Step Mother (Teensy 4.1) | \`firmware/StepMother_firmware_v${V}.hex\` | StepDaddy, or Teensy Loader |"
+            echo "| Step Mother 1 (Teensy 4.1) | \`firmware/StepMother_firmware_v${V}.hex\` | StepDaddy, or Teensy Loader |"
+            echo "| Step Mother 2 (RP2040) | \`firmware/StepMother2_firmware_v${V}.uf2\` | StepDaddy, or copy onto RPI-RP2 (Glide + Function at power-up) |"
             echo
             echo "## StepDaddy (the updater)"
             echo

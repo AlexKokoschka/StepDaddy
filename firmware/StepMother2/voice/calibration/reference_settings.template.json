@@ -1,0 +1,18 @@
+{
+  "plugin": "Reference synthesizer",
+  "version": "3.3.5.2",
+  "engine_model_exact_name": "FILL IN",
+  "oscillator_model_exact_name": "FILL IN",
+  "distortion_mode_exact_name": "FILL IN",
+  "volume_setting": "FILL IN",
+  "drive_setting": 0.5,
+  "emulation_trims": "factory defaults (confirm)",
+  "output_limiter": "off (confirm)",
+  "host_and_version": "FILL IN",
+  "export_sample_rate": 48000,
+  "export_length_seconds": 3,
+  "tempo_bpm": 120,
+  "known_export_latency_samples": null,
+  "post_plugin_trim_db": 0,
+  "notes": "Record deviations, nearest actual knob settings, and any omitted controls here."
+}

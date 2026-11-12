@@ -1,15 +1,26 @@
 # StepDaddy
 
 The updater: one double-clickable tool that installs the firmware on a
-**Step Mother**, with no Arduino IDE and without opening the enclosure. The
-firmware is StepBro and the Yummy Gummy synth in one; StepDaddy carries the
-image (`StepMother_firmware.hex`), so a customer downloads exactly one file.
+**Step Mother** (1: Teensy 4.1, 2: RP2040), with no Arduino IDE and without
+opening the enclosure. The firmware is StepBro and the Yummy Gummy synth in one;
+StepDaddy carries both images (`StepMother_firmware.hex` and
+`StepMother2_firmware.uf2`), so a customer downloads exactly one file.
 
 ## What the customer does
 
-Open StepDaddy.
+Open StepDaddy. It works out which board is connected:
 
-If the board is running this firmware (or anything else with
+- an RP2040 already in update mode (its RPI-RP2 drive) is a Step Mother 2;
+- a Teensy with a USB serial port is a Step Mother 1;
+- otherwise it asks: **1 = Step Mother 1 (Teensy), 2 = Step Mother 2 (RP2040)**.
+
+**Step Mother 2 (RP2040):** StepDaddy asks for GLIDE + FUNCTION (SHIFT + CLEAR on
+older panels) while plugging in USB, which opens the RPI-RP2 drive; a brand-new
+board opens it by itself. StepDaddy copies the `.uf2` on and the board restarts
+by itself. (This firmware has no USB serial port, so unlike the Teensy it cannot
+be restarted into update mode without the keys.)
+
+**Step Mother 1 (Teensy):** if the board is running this firmware (or anything else with
 a Teensy USB serial port), StepDaddy asks it over USB to restart into the
 Teensy bootloader: no keys or buttons. Otherwise it asks for GLIDE + FUNCTION
 while plugging in. Then **unplug and replug** when it says so.
@@ -74,17 +85,21 @@ on. If you need an Intel Mac build, add `macos-13` to the workflow matrix.
 No build needed if Python 3.9+ is present:
 
 ```bash
-python3 step_daddy.py --firmware path/to/StepMother_firmware_v1.0.0.hex
+python3 step_daddy.py --firmware path/to/StepMother_firmware_v1.1.0.hex      # Teensy
+python3 step_daddy.py --firmware path/to/StepMother2_firmware_v1.1.0.uf2     # RP2040
+python3 step_daddy.py --product mother2   # skip detection (mother = Teensy)
 python3 step_daddy.py                     # with the bundled file
 ```
 
-`--firmware` overrides the bundled image, which is handy for testing a local
-build before cutting a release. Running from source, the bundled file is the
-one next to the script (`StepMother_firmware.hex`), and `teensy_loader_cli`
-must be on `PATH`.
+`--firmware` overrides the bundled image (the board follows the extension: `.hex`
+Teensy, `.uf2` RP2040), which is handy for testing a local build before cutting a
+release. Running from source, the bundled files are the ones next to the script
+(`StepMother_firmware.hex`, `StepMother2_firmware.uf2`), and `teensy_loader_cli`
+must be on `PATH` for the Teensy.
 
 `test_step_daddy.py` runs the update flow against a simulated Teensy loader
-with the image CI just built (CI runs it on every build).
+and a simulated RPI-RP2 drive, with the images CI just built (CI runs it on
+every build).
 
 ## Rebuilding
 

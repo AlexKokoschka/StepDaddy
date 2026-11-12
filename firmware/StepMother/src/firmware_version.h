@@ -4,7 +4,7 @@
 // The Step Mother firmware: StepBro and Yummy Gummy in one. CI reads this
 // line to name the build, and the StepDaddy updater reads FIRMWARE_TAG from
 // the image to show which version a file holds.
-#define FIRMWARE_VERSION_STRING "1.0.0"
+#define FIRMWARE_VERSION_STRING "1.1.0"
 #define FIRMWARE_BOARD_NAME     "Step Mother"
 
 // "SSFW|<board>|<version>|": the same tag scheme as the earlier firmwares.
