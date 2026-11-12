@@ -377,8 +377,10 @@ def detect_board() -> str | None:
 def ask_board() -> str | None:
     print("  Which board do you have?")
     print()
-    print("    1. Step Mother 1 (Teensy 4.1)")
-    print("    2. Step Mother 2 (RP2040)")
+    print("    1. Step Mother 1 (Teensy): the USB socket is a micro-USB")
+    print("    2. Step Mother 2 (RP2040): the USB socket is a USB-C")
+    print()
+    print("  Look at the USB socket on the back edge of your controller to tell.")
     print()
     while True:
         try:

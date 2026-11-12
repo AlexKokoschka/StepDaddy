@@ -12,7 +12,8 @@ Open StepDaddy. It works out which board is connected:
 
 - an RP2040 already in update mode (its RPI-RP2 drive) is a Step Mother 2;
 - a Teensy with a USB serial port is a Step Mother 1;
-- otherwise it asks: **1 = Step Mother 1 (Teensy), 2 = Step Mother 2 (RP2040)**.
+- otherwise it asks: **1 = Step Mother 1 (Teensy, micro-USB socket), 2 = Step Mother 2
+  (RP2040, USB-C socket)**. The socket is the easy way to tell them apart.
 
 **Step Mother 2 (RP2040):** StepDaddy asks for GLIDE + FUNCTION (SHIFT + CLEAR on
 older panels) while plugging in USB, which opens the RPI-RP2 drive; a brand-new
