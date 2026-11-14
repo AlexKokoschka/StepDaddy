@@ -14,5 +14,8 @@ int test_bro_channel(void) {return bro::state.streamChannel[0];}
 int test_bro_chain_editing(void) {return bro::chainEditing;}
 int test_bro_chain_length(void) {return bro::chainLen[0];}
 int test_bro_recording(void) {return bro::recordArmed;}
+int test_bro_last_step(void) {return bro::lastTriggeredStep;}
+int test_bro_selected_pad(void) {return bro::lastSelectedVoice[0]-bro::noteBankWindow[0]*16;}
+int test_bro_grid_note(void) {return bro::gridMode==bro::MODE_NOTE;}
 void test_bro_seed(int slot,int voice,int step,int vel) {bro::state.slots[slot].steps[voice][step]=vel;bro::recalcHasContent(slot);bro::recalcLoopLength();}
 }

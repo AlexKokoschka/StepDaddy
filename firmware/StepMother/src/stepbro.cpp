@@ -2388,6 +2388,8 @@ const uint8_t LED_BANK_NUDGE_HI    = 90;  // "there's more over here" nudge
 const uint8_t LED_BANK_NUDGE_LO    = 10;
 const uint8_t LED_VEL_MIN          = 40;  // velocity 1   -> this brightness
 const uint8_t LED_VEL_MAX          = 210; // velocity 127 -> this brightness
+const uint8_t LED_PLAYHEAD         = 30;  // 1.2.0: Note mode, record armed: the moving step
+const uint8_t LED_PLAYHEAD_BAR     = 90;  // ...brighter on the first step of each bar
                                           // (headroom below 255 so the
                                           //  playback flash still reads)
 
@@ -2693,6 +2695,11 @@ void refreshLeds() {
           (voice == lastSelectedVoice[currentStream] || repeatVoiceForPad[i] >= 0)) {
         brightness = LED_FULL;
       }
+      // 1.2.0: record armed and playing: the playhead runs through the grid
+      // (pad 1 brighter at the start of each bar) so you can see where the bar
+      // starts. Only on pads that are otherwise dark: sounds stay readable.
+      if (brightness == 0 && recordArmed && isPlayingNow() && lastTriggeredStep % 16 == i)
+        brightness = (i == 0) ? LED_PLAYHEAD_BAR : LED_PLAYHEAD;
       setLed(i, brightness);
     }
     setBankLed(noteBankWindow[currentStream] ? LED_MODE_ON : 0);

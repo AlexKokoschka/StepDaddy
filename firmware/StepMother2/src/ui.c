@@ -975,7 +975,7 @@ static void function_page_release(int pad) {
   }
   if (pad != fn_pad) return;
   bool tap = !fn_knob_active && now_ms() - fn_press_ms < FN_TAP_MS;
-  if (fn_pad == FP_MIDIOUT && tap) {                  // tap: MIDI out on (pad dim) / off (dark)
+  if (fn_pad == FP_MIDIOUT && tap) {                  // tap: MIDI out on (pad bright) / off (dark)
     if (midi_out) notes_close_all();                  // off: close what is sounding
     midi_out = !midi_out;
   }
@@ -1308,17 +1308,18 @@ static void function_page_leds(uint8_t *pads, uint32_t now) {
     }
   } else if (fn_pad < 0) {                            // overview: the selected pad, and Clock / Poly when on
     for (int i = 0; i < 16; i++) pads[i] = L_OFF;
-    // MIDI out: dim = on, dark = off. Mono/Poly: dim = mono, bright = poly.
-    if (midi_out)  pads[FP_MIDIOUT] = L_DIM;
-    pads[FP_POLY] = pat()->poly ? L_BRIGHT : L_DIM;
+    // 1.2.0: MIDI out and Mono/Poly: dark = off / mono (the defaults),
+    // bright = on / poly.
+    pads[FP_MIDIOUT] = midi_out ? L_BRIGHT : L_OFF;
+    pads[FP_POLY] = pat()->poly ? L_BRIGHT : L_OFF;
     for (int a = 0; a < AUTO_PARAMS; a++)              // recorded in this pattern: faint glow
       if (auto_has(edit_slot, a)) pads[AUTO_FP[a]] = L_GLOW;
     pads[fn_sel] = L_FULL;
     if (auto_armed >= 0) pads[AUTO_FP[auto_armed]] = ((now / 100) % 2) ? L_FULL : L_OFF;   // recording: blinks fast
   } else {                                            // MIDI out / poly while held
     for (int i = 0; i < 16; i++) pads[i] = L_DIM;
-    if (midi_out)    pads[FP_MIDIOUT] = L_BRIGHT;
-    if (pat()->poly) pads[FP_POLY]  = L_BRIGHT;
+    pads[FP_MIDIOUT] = midi_out ? L_BRIGHT : L_OFF;
+    pads[FP_POLY]    = pat()->poly ? L_BRIGHT : L_OFF;
   }
   if (now < copy_flash_until && copy_flash_pad >= 0) pads[copy_flash_pad] = blink ? L_FULL : L_OFF;
 }
@@ -1390,7 +1391,7 @@ static void update_leds(void) {
       root_letter(pads, root);
     } else {
       for (int i = 0; i < SCALE_COUNT; i++) pads[i] = (i == (int)scale) ? L_BRIGHT : L_DIM;
-      pads[PAD_SCALE] = L_MID;
+      pads[PAD_SCALE] = L_BRIGHT;                     // 1.2.0: lit only while held
     }
   } else if (page == PAGE_NOTE) {
     for (int i = 0; i <= 12; i++) {
@@ -1399,9 +1400,16 @@ static void update_leds(void) {
       else pads[i] = (((pitch - root) % 12 + 12) % 12 == 0) ? L_GLOW : L_DIM;
       if (in_notes(sel_notes, poly() ? sel_n : 1, pitch) || (!poly() && pitch == selected_pitch)) pads[i] = L_BRIGHT;
     }
-    pads[PAD_SCALE] = L_DIM;
-    pads[PAD_OCT_DN] = entry_oct < 0 ? L_MID : L_DIM;
-    pads[PAD_OCT_UP] = entry_oct > 0 ? L_MID : L_DIM;
+    // 1.2.0: Scale dark until held; Oct -/+ dark at octave 0, lit only when
+    // you are below or above it.
+    pads[PAD_SCALE] = L_OFF;
+    pads[PAD_OCT_DN] = entry_oct < 0 ? L_BRIGHT : L_OFF;
+    pads[PAD_OCT_UP] = entry_oct > 0 ? L_BRIGHT : L_OFF;
+    // 1.2.0: recording armed and playing: the playhead runs through the grid,
+    // brighter on step 1, so you can see where the bar starts. Pressed and
+    // selected notes stay on top.
+    if (recording && head >= 0 && head < 16 && head < len && pads[head] < L_BRIGHT)
+      pads[head] = head == 0 ? L_CHORD : L_MID;
   } else {                                            // pattern page
     bool acc = keys & (1u << KEY_ACCENT), gl = keys & (1u << KEY_GLIDE);
     uint32_t ph = now % 700;                          // gentle pulse, 0..20

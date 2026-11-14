@@ -25,3 +25,7 @@ int test_yummy_midi_out(void){return midi_out;}
 void test_yummy_set_midi_out(int on){midi_out=(uint8_t)(on!=0);}
 int test_yummy_channel(void){return midi_channel;}
 int test_yummy_lead(void){return midi_lead;}
+// 1.2.0
+int test_yummy_head(void){return seq_playhead;}
+int test_yummy_oct(void){return entry_oct;}
+int test_yummy_fn_sel(void){return fn_sel;}

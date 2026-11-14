@@ -382,6 +382,62 @@ int main(void) {
   yd[fo]=(uint8_t)((yd[fo]&~(15<<3))|(5<<3)|4);         // new: 5 ms
   assert(ui_store_apply(yd,ys));assert(test_yummy_lead()==5);
  }
- printf("PASS integration: StepBro note/step/velocity, both transports, six chord orders, four-note audition, hold cleanup, background playback, local Play, chains, Pattern + knob inert, Mute + knob gate length, beat-quantised local restart in DAW time, knob density, recorded rolls, Yummy automation, Drive/Mix pickup, actual v0.2.3 save import, metadata upgrade and Drive retention, Yummy MIDI/audio mutes from Shift+Mute, MIDI out off by default (older saves too), scale-following melodies, Yummy MIDI channel / out / lead pads, USB-only clock, 1 ms Yummy lead with old-save conversion, save-blocker diagnostics, all-notes-off.\n");
+ // 1.2.0: LEDs and playheads.
+ {extern int test_bro_last_step(void),test_bro_selected_pad(void),test_bro_grid_note(void);
+  extern int test_yummy_head(void),test_yummy_oct(void),test_yummy_fn_sel(void);
+  extern void test_yummy_set_midi_out(int);
+  system_msg(0xFC);wait_ms(50);
+  if(test_yummy_active())chord(KEY_GLIDE,KEY_WAVE,KEY_PLAY);
+  assert(!test_yummy_active());
+  if(!test_bro_grid_note()){tap(KEY_NOTE);wait_ms(450);}
+  assert(test_bro_grid_note()&&!test_bro_recording());
+  // StepBro, not armed: no playhead on the dark pads.
+  system_msg(0xFA);
+  for(int i=0;i<40;i++){clocks(1);int ph=test_bro_last_step()%16;
+   if(ph!=test_bro_selected_pad())assert(led[ph]==0);}
+  // Armed: the playhead runs, brighter on pad 1.
+  wait_ms(450);tap(KEY_NOTE);tap(KEY_NOTE);assert(test_bro_recording());
+  {int seen0=0,seen=0;
+   for(int i=0;i<6*20;i++){clocks(1);int ph=test_bro_last_step()%16;
+    // LEDs refresh on their own schedule: the lit pad is this step or the one before.
+    int lit=-1,n=0;for(int k=0;k<16;k++)if(k!=test_bro_selected_pad()&&led[k]){lit=k;n++;}
+    if(n==0)continue;                                  // the step is on the selected pad
+    assert(n==1&&(lit==ph||lit==(ph+15)%16));assert(led[lit]==(lit==0?90:30));
+    if(lit==0)seen0=1;else seen=1;}
+   assert(seen0&&seen);}
+  tap(KEY_NOTE);assert(!test_bro_recording());system_msg(0xFC);wait_ms(50);
+  // Yummy Note page: Scale and Oct dark at rest; Scale lit while held,
+  // Oct - / + lit only when below / above octave 0.
+  chord(KEY_GLIDE,KEY_WAVE,KEY_PLAY);assert(test_yummy_active());
+  tap(KEY_NOTE);wait_ms(450);assert(test_yummy_page()==0&&test_yummy_oct()==0);
+  wait_ms(20);assert(led[13]==0&&led[14]==0&&led[15]==0);
+  key(pad_key(13),1);wait_ms(20);assert(led[13]==140);key(pad_key(13),0);wait_ms(20);assert(led[13]==0);
+  tap(pad_key(14));wait_ms(20);assert(test_yummy_oct()==-1&&led[14]==140&&led[15]==0);
+  tap(pad_key(15));tap(pad_key(15));wait_ms(20);assert(test_yummy_oct()==1&&led[14]==0&&led[15]==140);
+  tap(pad_key(14));wait_ms(20);assert(test_yummy_oct()==0&&led[14]==0&&led[15]==0);
+  // Recording armed and playing: the playhead runs, brighter on step 1.
+  // (mono, one note selected away from pad 1, so pad 1 is free to show it)
+  tap(KEY_FUNCTION);wait_ms(20);if(test_yummy_poly())tap(pad_key(15));
+  tap(KEY_NOTE);wait_ms(450);tap(pad_key(5));wait_ms(20);
+  wait_ms(450);tap(KEY_NOTE);tap(KEY_NOTE);assert(test_yummy_recording());
+  system_msg(0xFA);
+  {int seen0=0,seen=0;
+   for(int i=0;i<6*20;i++){clocks(1);wait_ms(2);int h=test_yummy_head();
+    int lit=-1,n=0;for(int k=0;k<16;k++)if(led[k]==30||led[k]==70){lit=k;n++;}
+    if(h<0||n==0)continue;                             // on a selected note
+    assert(n==1&&(lit==h||lit==(h+15)%16));assert(led[lit]==(lit==0?70:30));
+    if(lit==0)seen0=1;else seen=1;}
+   assert(seen0&&seen);}
+  tap(KEY_NOTE);assert(!test_yummy_recording());system_msg(0xFC);wait_ms(50);
+  // Function page: MIDI out and Mono/Poly dark when off / mono, bright when on / poly.
+  tap(KEY_FUNCTION);wait_ms(20);assert(test_yummy_page()==2);
+  assert(test_yummy_fn_sel()!=13&&test_yummy_fn_sel()!=15);
+  test_yummy_set_midi_out(0);int poly=test_yummy_poly();if(poly){tap(pad_key(15));}
+  wait_ms(20);assert(!test_yummy_poly()&&led[13]==0&&led[15]==0);
+  tap(pad_key(13));wait_ms(20);assert(test_yummy_midi_out()&&led[13]==140);
+  tap(pad_key(15));wait_ms(20);assert(test_yummy_poly()&&led[15]==140);
+  tap(pad_key(15));tap(pad_key(13));wait_ms(20);assert(!test_yummy_poly()&&!test_yummy_midi_out()&&led[13]==0&&led[15]==0);
+  tap(KEY_NOTE);chord(KEY_GLIDE,KEY_WAVE,KEY_PLAY);assert(!test_yummy_active());}
+ printf("PASS integration: StepBro note/step/velocity, both transports, six chord orders, four-note audition, hold cleanup, background playback, local Play, chains, Pattern + knob inert, Mute + knob gate length, beat-quantised local restart in DAW time, knob density, recorded rolls, Yummy automation, Drive/Mix pickup, actual v0.2.3 save import, metadata upgrade and Drive retention, Yummy MIDI/audio mutes from Shift+Mute, MIDI out off by default (older saves too), scale-following melodies, Yummy MIDI channel / out / lead pads, USB-only clock, 1 ms Yummy lead with old-save conversion, save-blocker diagnostics, all-notes-off, 1.2.0 LEDs and record playheads.\n");
  return 0;
 }
