@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.2.0
+
+- **StepBro, Note mode:** with record armed and the host playing, the playhead
+  runs through the grid (pad 1 brighter at the start of each bar), so you can
+  see where the bar starts.
+- **StepBro, Note mode:** the knob on its own sets the selected sound's
+  velocity. It picks up (nothing changes until the knob crosses the current
+  value) and scales the velocities already programmed for that sound, so
+  accents keep their shape. Density is now Pattern mode only.
+- **StepBro, note repeat:** while a pad rolls (Shift + pad), the knob rides the
+  velocity of the repeats, and a recorded roll keeps it.
+- **Yummy, Note page:** the playhead runs while recording is armed. Scale is
+  dark until held; Oct - / + are dark at octave 0 and lit below / above it.
+- **Yummy, Function page:** MIDI Out and Mono/Poly are dark when off / mono
+  (the defaults) and bright when on / poly.
+- **Yummy, chains:** as on StepBro: double-tap Pattern, tap the slots, then tap
+  Pattern, Note or Function to finish. Holding Pattern and tapping a slot picks
+  that one pattern.
+- Saves are unchanged: patterns and settings from 1.1.0 load as they are.
+
 ## 1.1.0
 
 - No changes to the Teensy firmware. The version is raised so that the Step

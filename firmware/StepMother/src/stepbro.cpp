@@ -1501,8 +1501,12 @@ bool anyPatternPadHeld() {
   return false;
 }
 
+// 1.2.0: knob controls run at most once a millisecond: compiled for size
+// (the RP2040 runs the whole program from RAM).
+#define BRO_KNOB_COLD __attribute__((noinline, optimize("Os")))
+
 // 1.2.0: the knob on its own in Note mode. See noteVelArmed.
-void handleNoteVelocityKnob(uint16_t raw) {
+BRO_KNOB_COLD void handleNoteVelocityKnob(uint16_t raw) {
   uint8_t voice = lastSelectedVoice[currentStream];
   uint8_t slot = activeSlot[currentStream];
   uint16_t target = map(voiceVelocity[voice], 1, 127, 0, ADC_MAX);
@@ -1536,8 +1540,24 @@ void handleNoteVelocityKnob(uint16_t raw) {
   if (changed) markDirty();
 }
 
+// 1.2.0: one velocity from the knob, starting at v0 where the knob was at
+// baseline; the knob's ends reach 1 and 127.
+BRO_KNOB_COLD uint8_t rollVelocity(uint8_t v0, uint16_t raw, uint16_t baseline) {
+  int32_t vel;
+  if (raw >= baseline) {
+    int32_t span = ADC_MAX - baseline;
+    vel = span ? v0 + ((int32_t)(raw - baseline) * (127 - v0) + span / 2) / span : v0;
+  } else {
+    int32_t span = baseline;
+    vel = v0 - ((int32_t)(baseline - raw) * (v0 - 1) + span / 2) / span;
+  }
+  if (vel < 1) vel = 1;
+  if (vel > 127) vel = 127;
+  return (uint8_t)vel;
+}
+
 // 1.2.0: the knob while pads roll. See rollKnobActive.
-void handleRollVelocityKnob(uint16_t raw) {
+BRO_KNOB_COLD void handleRollVelocityKnob(uint16_t raw) {
   if (!rollKnobActive) {
     rollKnobActive = true;
     rollKnobMoved = false;
@@ -1554,17 +1574,7 @@ void handleRollVelocityKnob(uint16_t raw) {
   for (uint8_t p = 0; p < 16; p++) {
     int8_t v = repeatVoiceForPad[p];
     if (v < 0) continue;
-    int32_t v0 = rollKnobStartVel[p], vel;
-    if (raw >= rollKnobBaseline) {
-      int32_t span = ADC_MAX - rollKnobBaseline;
-      vel = span ? v0 + ((int32_t)(raw - rollKnobBaseline) * (127 - v0) + span / 2) / span : v0;
-    } else {
-      int32_t span = rollKnobBaseline;
-      vel = v0 - ((int32_t)(rollKnobBaseline - raw) * (v0 - 1) + span / 2) / span;
-    }
-    if (vel < 1) vel = 1;
-    if (vel > 127) vel = 127;
-    voiceVelocity[v] = (uint8_t)vel;
+    voiceVelocity[v] = rollVelocity(rollKnobStartVel[p], raw, rollKnobBaseline);
   }
 }
 

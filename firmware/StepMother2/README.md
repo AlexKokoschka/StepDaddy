@@ -1,4 +1,4 @@
-# Step Mother 2 (RP2040) firmware 1.1.0
+# Step Mother 2 (RP2040) firmware 1.2.0
 
 StepBro and Yummy Gummy in one firmware, for the Step Mother 2 (RP2040,
 200 MHz, 48 kHz USB audio). Shift + Bank + Play switches the panel between

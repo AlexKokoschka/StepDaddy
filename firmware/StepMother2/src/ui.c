@@ -1037,7 +1037,7 @@ static void set_chain(const uint8_t *c, int n) {
 
 // 1.2.0: end chain entry: two or more slots make a chain, one slot plays on
 // its own (ends a chain), none changes nothing.
-static void chain_finish(void) {
+YUMMY_COLD static void chain_finish(void) {
   if (!chain_entry) return;
   chain_entry = false;
   if (chain_build_n == 1) set_chain(chain_build, 0);
