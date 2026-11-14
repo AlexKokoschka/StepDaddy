@@ -75,7 +75,10 @@ static bool panel_active;
 #include "pico/stdlib.h"
 
 #define REC_LATENCY_MS    20.0f   // board -> computer -> your ears, roughly
-#define KNOB_PER_DEGREE   150     // knob travel per scale note when editing a step
+// 1.2.0: holding a step and turning moves its note within the Note page's
+// range (Oct - pad 1 to Oct + pad 13): C1..C4.
+#define STEP_EDIT_MIN     (SEQ_BASE_NOTE - 12)
+#define STEP_EDIT_MAX     (SEQ_BASE_NOTE + 24)
 #define KNOB_ACTIVATE     60      // knob travel before an absolute selection takes over
 #define SAVE_SETTLE_MS    1500    // save this long after the last change (when stopped)
 #define CHORD_MS          40      // pads pressed this close together form one chord
@@ -767,14 +770,40 @@ static void pattern_page_release(int pad) {
   held_step = -1;
 }
 
+// 1.2.0: how many scale notes a note can move in one direction before it
+// leaves STEP_EDIT_MIN..STEP_EDIT_MAX.
+YUMMY_COLD static int degrees_room(int pitch, int dir) {
+  int n = 0;
+  for (;;) {
+    int p = seq_scale_move(pitch, dir, scale, root);
+    if (p == pitch || (dir < 0 ? p < STEP_EDIT_MIN : p > STEP_EDIT_MAX)) return n;
+    pitch = p; n++;
+  }
+}
+
 // Hold a step and turn: move its note through the scale. Only while stopped,
 // and you hear each note as you reach it; while playing the knob does nothing
 // here (but still counts as turned, so letting go doesn't clear the step).
+// 1.2.0: the knob's remaining travel each way is stretched over the notes left
+// that way, so turning to either end always reaches C1 or C4 (within the
+// scale), wherever the knob was when you grabbed the step. Before, it moved a
+// fixed note per 150 counts, and the range depended on where the knob sat.
 static void edit_held_step(int knob) {
   int delta = knob - held_knob_start;
-  if (abs(delta) > KNOB_ACTIVATE / 2) held_moved = true;
+  int dz = KNOB_ACTIVATE / 2;
+  if (abs(delta) > dz) held_moved = true;
   if (playing) return;
-  int degrees = delta / KNOB_PER_DEGREE;
+  int degrees = 0;
+  if (abs(delta) > dz) {
+    int dir = delta > 0 ? 1 : -1, room = 99;
+    for (int i = 0; i < held_n; i++) { int r = degrees_room(held_base[i], dir); if (r < room) room = r; }
+    int span = (dir > 0 ? 4095 - held_knob_start : held_knob_start) - dz;
+    int eff = abs(delta) - dz;
+    if (span > 0 && room > 0) {
+      if (eff > span) eff = span;
+      degrees = dir * ((eff * room + span / 2) / span);
+    }
+  }
   if (degrees == 0 && memcmp(held_last, held_base, (size_t)held_n) == 0) return;   // nothing to change
   uint8_t notes[SEQ_MAX_NOTES];                       // the whole chord moves through the scale
   for (int i = 0; i < held_n; i++)

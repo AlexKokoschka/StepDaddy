@@ -522,6 +522,44 @@ int main(void) {
   wait_ms(450);key(KEY_PATTERN,1);wait_ms(30);tap(pad_key(0));key(KEY_PATTERN,0);wait_ms(450);
   assert(test_yummy_edit_slot()==0);
   tap(KEY_NOTE);chord(KEY_GLIDE,KEY_WAVE,KEY_PLAY);assert(!test_yummy_active());}
- printf("PASS integration: StepBro note/step/velocity, both transports, six chord orders, four-note audition, hold cleanup, background playback, local Play, chains, Pattern + knob inert, Mute + knob gate length, beat-quantised local restart in DAW time, knob density, recorded rolls, Yummy automation, Drive/Mix pickup, actual v0.2.3 save import, metadata upgrade and Drive retention, Yummy MIDI/audio mutes from Shift+Mute, MIDI out off by default (older saves too), scale-following melodies, Yummy MIDI channel / out / lead pads, USB-only clock, 1 ms Yummy lead with old-save conversion, save-blocker diagnostics, all-notes-off, 1.2.0 LEDs and record playheads, Note-mode velocity knob with pickup and step scaling, roll velocity on the knob (also recorded), Yummy chain entry by double-tapping Pattern.\n");
+ // 1.2.0: holding a step and turning reaches C1..C4 (the Note page range)
+ // wherever the knob sits when the step is grabbed. Before: C1 from a knob
+ // at three-quarters reached only five notes up.
+ {extern int test_yummy_step_pitch(int),test_yummy_edit_slot(void),test_yummy_root(void);
+  extern void test_yummy_set_scale(int);
+  system_msg(0xFC);wait_ms(50);if(!test_yummy_active())chord(KEY_GLIDE,KEY_WAVE,KEY_PLAY);
+  tap(KEY_FUNCTION);wait_ms(20);if(test_yummy_poly())tap(pad_key(15));
+  test_yummy_set_scale(0);tap(KEY_PATTERN);wait_ms(450);
+  seq_pattern_t keep=seq_patterns[test_yummy_edit_slot()];
+  #define PUT(st,n) do{seq_pattern_t *q=&seq_patterns[test_yummy_edit_slot()];uint8_t x=(uint8_t)(n);q->steps[st].on=1;q->steps[st].tie=0;seq_step_set(q,&q->steps[st],&x,1);}while(0)
+  #define TURN(a,b) do{int a_=(a),b_=(b),d_=b_>a_?16:-16;for(int k_=a_;(d_>0)?k_<b_:k_>b_;k_+=d_){knob=(uint16_t)k_;wait_ms(1);}knob=(uint16_t)b_;wait_ms(5);}while(0)
+  int starts[5]={0,1024,2048,3300,4000};
+  for(int i=0;i<5;i++){
+   PUT(3,24);knob=starts[i];wait_ms(20);key(pad_key(3),1);wait_ms(10);
+   TURN(starts[i],4095);assert(test_yummy_step_pitch(3)==60);         // C1 -> C4 from anywhere
+   key(pad_key(3),0);wait_ms(20);}
+  PUT(3,48);knob=2048;wait_ms(20);key(pad_key(3),1);wait_ms(10);
+  TURN(2048,0);assert(test_yummy_step_pitch(3)==24);                  // down to C1
+  TURN(0,4095);assert(test_yummy_step_pitch(3)==60);                  // up to C4
+  TURN(4095,2048);assert(test_yummy_step_pitch(3)==48);               // back where it started
+  key(pad_key(3),0);wait_ms(20);
+  // In a scale: the ends are the lowest / highest scale notes in C1..C4.
+  test_yummy_set_scale(1);
+  {int r=test_yummy_root(),lo=24,hi=60;while(!seq_in_scale(lo,1,r))lo++;while(!seq_in_scale(hi,1,r))hi--;
+   PUT(5,seq_scale_snap(40,1,r));knob=3000;wait_ms(20);key(pad_key(5),1);wait_ms(10);
+   TURN(3000,4095);assert(test_yummy_step_pitch(5)==hi);
+   TURN(4095,0);assert(test_yummy_step_pitch(5)==lo);
+   key(pad_key(5),0);wait_ms(20);}
+  test_yummy_set_scale(0);
+  // A note above C4 (written before 1.2.0) does not go further up.
+  PUT(6,66);knob=2048;wait_ms(20);key(pad_key(6),1);wait_ms(10);
+  TURN(2048,4095);assert(test_yummy_step_pitch(6)==66);
+  TURN(4095,0);assert(test_yummy_step_pitch(6)==24);
+  key(pad_key(6),0);wait_ms(20);
+  #undef PUT
+  #undef TURN
+  seq_patterns[test_yummy_edit_slot()]=keep;
+  tap(KEY_NOTE);chord(KEY_GLIDE,KEY_WAVE,KEY_PLAY);assert(!test_yummy_active());}
+ printf("PASS integration: StepBro note/step/velocity, both transports, six chord orders, four-note audition, hold cleanup, background playback, local Play, chains, Pattern + knob inert, Mute + knob gate length, beat-quantised local restart in DAW time, knob density, recorded rolls, Yummy automation, Drive/Mix pickup, actual v0.2.3 save import, metadata upgrade and Drive retention, Yummy MIDI/audio mutes from Shift+Mute, MIDI out off by default (older saves too), scale-following melodies, Yummy MIDI channel / out / lead pads, USB-only clock, 1 ms Yummy lead with old-save conversion, save-blocker diagnostics, all-notes-off, 1.2.0 LEDs and record playheads, Note-mode velocity knob with pickup and step scaling, roll velocity on the knob (also recorded), Yummy chain entry by double-tapping Pattern, step note edits reach C1..C4 from any knob position.\n");
  return 0;
 }
