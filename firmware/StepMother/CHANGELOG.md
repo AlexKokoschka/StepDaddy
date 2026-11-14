@@ -7,15 +7,18 @@
   see where the bar starts.
 - **StepBro, Note mode:** the knob on its own sets the selected sound's
   velocity. It picks up (nothing changes until the knob crosses the current
-  value) and scales the velocities already programmed for that sound, so
-  accents keep their shape. Density is now Pattern mode only.
+  value). With hits programmed, the knob is the sound's loudest hit and the
+  others follow in proportion: accents keep their shape, the full range is
+  reachable and nothing clips. A small dead band keeps a resting knob from
+  flipping between two values. Density is now Pattern mode only.
 - **StepBro, note repeat:** while a pad rolls (Shift + pad), the knob rides the
   velocity of the repeats, and a recorded roll keeps it.
 - **StepBro, Pattern mode: loop window.** Hold Shift and press a step: that
   step repeats while you hold it. Hold a step and press a second: the steps
   between them loop for as long as Shift is down, even with the steps let go.
   Let go of Shift and the full pattern carries on where it would have been. The
-  loop starts on the next sixteenth and uses the 16 steps in view (Bank).
+  loop starts on the next sixteenth and uses the 16 steps in view (Bank);
+  the looped steps glow dimly.
 - **Yummy, Note page:** the playhead runs while recording is armed. Scale is
   dark until held; Oct - / + are dark at octave 0 and lit below / above it.
 - **Yummy, Function page:** MIDI Out and Mono/Poly are dark when off / mono
@@ -27,6 +30,12 @@
   lowest and highest note of the Note page's range (C1 to C4, in the scale)
   from any knob position. Before, the range depended on where the knob sat
   when you grabbed the step, and could shrink to a few notes.
+- **Yummy:** double-taps (Note record, Pattern chain, Function pads) accept
+  0.4 s between taps, as on StepBro (was 0.3 s). Holding a step and turning
+  has a dead band, so a still knob near one end cannot flicker between notes.
+- **Saving is silent:** no more Play blink while saving, and no all-LED flash
+  for the USB audio packet a save costs (it is silence: saves only run with
+  everything stopped). The flash still warns about real dropouts in playback.
 - Saves are unchanged: patterns and settings from 1.1.0 load as they are.
 
 ## 1.1.0

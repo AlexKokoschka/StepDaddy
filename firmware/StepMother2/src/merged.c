@@ -96,9 +96,8 @@ void merged_task_1ms(void) {
     leds_set(LED_WAVE,(merged_millis()/500)%2?220:0);
   }
   persist_task();
-  // Stopped-only save progress: Play blinks; three-bank errors remain visible
-  // through telemetry. Engine transport displays resume immediately on Start.
-  if(persist_busy())leds_set(LED_PLAY,(merged_millis()/100)%2?220:0);
+  // 1.2.0: saves are silent (no Play blink); errors remain visible through
+  // telemetry (Function + Play on the Yummy level).
   leds_task();
 }
 void merged_task_fast(void) {bro_task();}

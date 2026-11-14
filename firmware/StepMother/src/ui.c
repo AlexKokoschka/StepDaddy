@@ -82,7 +82,7 @@ static bool panel_active;
 #define KNOB_ACTIVATE     60      // knob travel before an absolute selection takes over
 #define SAVE_SETTLE_MS    1500    // save this long after the last change (when stopped)
 #define CHORD_MS          40      // pads pressed this close together form one chord
-#define DOUBLE_TAP_MS     300     // Note double-tap: record
+#define DOUBLE_TAP_MS     400     // double-taps (Note record, Pattern chain, Function pads): as StepBro
 
 #define PAD_SCALE   13
 #define PAD_OCT_DN  14
@@ -148,6 +148,8 @@ static uint32_t held_press_ms;     // a short tap clears / places; a longer hold
 #define STEP_TAP_MS 400
 #define FN_TAP_MS   500    // Clock / MIDI pads on the Function page: shorter = tap
 static int  held_knob_start;
+static int  held_degrees;                          // 1.2.0: last degrees shown (dead band)
+static int  held_last_knob;                        // knob position at the last change
 static uint8_t held_base[SEQ_MAX_NOTES], held_last[SEQ_MAX_NOTES];
 static int  held_n;
 
@@ -201,7 +203,13 @@ static uint32_t now_ms(void) { return to_ms_since_boot(get_absolute_time()); }
 void ui_status(bool mounted, bool streaming, bool crash, uint32_t underruns) {
   usb_mounted = mounted;
   crashed = crash;
-  if (streaming && underruns != last_underruns) flash_until = now_ms() + 150;
+  // 1.2.0: a save pauses the processor while flash is written, which costs a
+  // USB audio packet or two. Saves only run with everything stopped, so that
+  // packet is silence: no warning flash for it (saves are silent).
+  static uint32_t save_quiet_until;
+  if (persist_busy()) save_quiet_until = now_ms() + 500;
+  if (streaming && underruns != last_underruns && (int32_t)(now_ms() - save_quiet_until) >= 0)
+    flash_until = now_ms() + 150;
   last_underruns = underruns;
 }
 
@@ -744,6 +752,8 @@ static void pattern_page_press(int pad, bool accent, bool glide) {
     held_moved = false;
     held_press_ms = now_ms();
     held_knob_start = panel_knob();
+    held_degrees = 0;
+    held_last_knob = held_knob_start;
     if (s->on && !s->tie) held_n = seq_step_notes(pat(), s, held_base);   // mono pattern: lowest only
     else { held_n = poly() ? sel_n : 1; memcpy(held_base, sel_notes, sizeof(held_base)); if (!poly()) held_base[0] = (uint8_t)selected_pitch; }
     memcpy(held_last, held_base, sizeof(held_last));
@@ -801,9 +811,17 @@ static void edit_held_step(int knob) {
     int eff = abs(delta) - dz;
     if (span > 0 && room > 0) {
       if (eff > span) eff = span;
-      degrees = dir * ((eff * room + span / 2) / span);
+      // In thousandths of a note, so a dead band can be kept round each
+      // boundary: a still knob near one end (notes close together) must not
+      // flicker between two notes.
+      int pos = dir * (eff * room * 1000 / span);
+      degrees = (pos + (pos >= 0 ? 500 : -500)) / 1000;
+      if (degrees != held_degrees && knob > 8 && knob < 4087 &&   // the ends always reach the last note
+          (abs(pos - held_degrees * 1000) < 700 || abs(knob - held_last_knob) < 12)) degrees = held_degrees;
     }
   }
+  if (degrees != held_degrees) held_last_knob = knob;
+  held_degrees = degrees;
   if (degrees == 0 && memcmp(held_last, held_base, (size_t)held_n) == 0) return;   // nothing to change
   uint8_t notes[SEQ_MAX_NOTES];                       // the whole chord moves through the scale
   for (int i = 0; i < held_n; i++)

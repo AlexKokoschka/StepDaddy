@@ -364,14 +364,17 @@ bool densityKnobMoved = false;
 bool densityRearm = true;                  // take a new baseline on the next knob pass
 uint16_t densityKnobBaseline = 0;
 // 1.2.0: in Note mode the knob on its own sets the selected sound's velocity
-// (density is Pattern mode only). It picks up: nothing changes until the knob
-// crosses the current velocity. Turning then also scales the velocities
-// already programmed for that sound, from a snapshot taken at pickup, so the
-// accents keep their shape and turning back restores them.
+// (density is Pattern mode only). With hits programmed, the knob is the
+// sound's LOUDEST hit and the others follow in proportion (from a snapshot
+// taken at pickup), so the accents keep their shape, the full range is
+// reachable and nothing clips; turning back restores them. Without hits it is
+// the live velocity. It picks up: nothing changes until the knob crosses the
+// current value.
 bool noteVelArmed = false;
 bool noteVelPicked = false;
 bool noteVelAbove = false;                 // knob was above the target when armed
 uint8_t noteVelVoice = 0, noteVelSlot = 0, noteVelStart = 0;
+uint16_t noteVelLastRaw = 0;               // knob position at the last change (dead band)
 uint8_t noteVelSnap[MAX_STEPS];            // the sound's steps at pickup
 const uint16_t NOTE_VEL_PICKUP_TOL = 12;   // ADC counts: "at" the target
 // 1.2.0: while a pad rolls (Shift + pad), the knob rides the velocity of the
@@ -990,6 +993,14 @@ void onKeyEvent(int8_t key, bool pressed) {
   if (key < K_PAD_BASE || key > K_PAD_BASE + 15) return;
   uint8_t padIndex = key - K_PAD_BASE;
 
+  // 1.2.0: a pad used for the loop window: its release is swallowed here,
+  // before any overlay, so a modifier pressed meanwhile cannot leave it
+  // pending (it would then swallow the pad's next release, in any mode).
+  if (loopPadsMask & (1u << padIndex)) {
+    if (!pressed) { loopPadRelease(padIndex); return; }
+    loopPadsMask &= (uint16_t)~(1u << padIndex);   // missed release: forget it
+  }
+
   // Highest-priority overlay: Shift+Play held = MIDI channel select,
   // regardless of grid mode.
   if (shiftHeld && playHeld) {
@@ -1080,11 +1091,7 @@ void onKeyEvent(int8_t key, bool pressed) {
     return;
   }
 
-  // 1.2.0: loop window. A pad used for it never toggles its step.
-  if (!pressed && (loopPadsMask & (1u << padIndex))) {
-    loopPadRelease(padIndex);
-    return;
-  }
+  // 1.2.0: loop window (its releases are handled at the top).
   if (pressed && gridMode == MODE_PATTERN && shiftHeld && !muteHeld && !clearHeld &&
       !patternHeld && !playHeld) {
     loopPadPress(padIndex);
@@ -1541,7 +1548,12 @@ bool anyPatternPadHeld() {
 BRO_KNOB_COLD void handleNoteVelocityKnob(uint16_t raw) {
   uint8_t voice = lastSelectedVoice[currentStream];
   uint8_t slot = activeSlot[currentStream];
-  uint16_t target = map(voiceVelocity[voice], 1, 127, 0, ADC_MAX);
+  uint8_t loudest = 0;
+  for (uint8_t st = 0; st < MAX_STEPS; st++) {
+    uint8_t x = (noteVelPicked && noteVelArmed) ? noteVelSnap[st] : state.slots[slot].steps[voice][st];
+    if (x > loudest) loudest = x;
+  }
+  uint16_t target = map(loudest ? loudest : voiceVelocity[voice], 1, 127, 0, ADC_MAX);
   if (!noteVelArmed || voice != noteVelVoice || slot != noteVelSlot) {
     noteVelArmed = true;
     noteVelPicked = false;
@@ -1554,9 +1566,15 @@ BRO_KNOB_COLD void handleNoteVelocityKnob(uint16_t raw) {
     if (d < 0) d = -d;
     if ((raw > target) == noteVelAbove && d > (int16_t)NOTE_VEL_PICKUP_TOL) return;
     noteVelPicked = true;
-    noteVelStart = voiceVelocity[voice];
+    noteVelStart = loudest ? loudest : voiceVelocity[voice];
     for (uint8_t st = 0; st < MAX_STEPS; st++) noteVelSnap[st] = state.slots[slot].steps[voice][st];
+    noteVelLastRaw = target;               // picked up at the current value
   }
+  // Dead band: a knob resting on the border between two values must not flip
+  // between them (each flip rewrites the hits and holds off saving).
+  {int16_t d = (int16_t)raw - (int16_t)noteVelLastRaw; if (d < 0) d = -d;
+   if (d < 6 && raw != 0 && raw != ADC_MAX) return;}
+  noteVelLastRaw = raw;
   uint8_t vel = map(raw, 0, ADC_MAX, 1, 127);
   if (vel == voiceVelocity[voice]) return;
   voiceVelocity[voice] = vel;
@@ -2580,6 +2598,7 @@ const uint8_t LED_VEL_MIN          = 40;  // velocity 1   -> this brightness
 const uint8_t LED_VEL_MAX          = 210; // velocity 127 -> this brightness
 const uint8_t LED_PLAYHEAD         = 30;  // 1.2.0: Note mode, record armed: the moving step
 const uint8_t LED_PLAYHEAD_BAR     = 90;  // ...brighter on the first step of each bar
+const uint8_t LED_LOOP_RANGE       = 20;  // 1.2.0: empty steps inside the loop window
                                           // (headroom below 255 so the
                                           //  playback flash still reads)
 
@@ -2904,6 +2923,10 @@ void refreshLeds() {
       // indicator for other voices' steps here — reverted per request,
       // too much visual noise; see the Note-held overview below instead.)
       uint8_t brightness = (vel > 0) ? map(vel, 1, 127, LED_VEL_MIN, LED_VEL_MAX) : 0;
+      // 1.2.0: the loop window's steps glow dimly (hits show as usual).
+      if (!brightness && loopLen && loopStream == currentStream &&
+          globalStep >= loopStartStep && globalStep < loopStartStep + loopLen)
+        brightness = LED_LOOP_RANGE;
       if (stepFlashUntil[currentStream][globalStep] > now) brightness = LED_FULL;
       setLed(i, brightness);
     }
@@ -3076,6 +3099,7 @@ void bro_suspend_panel(void) {
   bro::voiceHeldLive[0][v]=false;
  }
  bro::heldNoteVoice=-1;
+ bro::loopStop();bro::loopPadsMask=0;   // 1.2.0
  bro::shiftHeld=bro::muteHeld=bro::clearHeld=bro::patternHeld=bro::playHeld=false;
  bro::bankHeld=bro::noteHeld=false;bro::bankConsumed=false;
  bro::recordArmed=false;bro::lastNoteTapMillis=bro::lastPatternTapMillis=0;

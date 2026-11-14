@@ -448,21 +448,34 @@ int main(void) {
   if(!test_bro_grid_note()){tap(KEY_NOTE);wait_ms(450);}
   assert(test_bro_grid_note());
   int slot=test_bro_active_slot();test_bro_clear(slot);
-  test_bro_seed(slot,3,0,100);test_bro_seed(slot,3,4,50);test_bro_seed(slot,3,8,127);
+  // The knob is the sound's loudest hit (100 here); the others follow.
+  test_bro_seed(slot,3,0,80);test_bro_seed(slot,3,4,40);test_bro_seed(slot,3,8,100);
   knob=400;wait_ms(20);tap(pad_key(3));wait_ms(20);
   assert(test_bro_voice_vel(3)==100);int dens=test_bro_density();
-  knob=2000;wait_ms(20);assert(test_bro_voice_vel(3)==100);        // below 100: not picked up yet
-  assert(test_bro_step(slot,3,4)==50&&test_bro_density()==dens);   // and density untouched
+  knob=2000;wait_ms(20);assert(test_bro_step(slot,3,8)==100);      // below 100: not picked up yet
+  assert(test_bro_step(slot,3,4)==40&&test_bro_density()==dens);   // and density untouched
   knob=3400;wait_ms(20);int v=test_bro_voice_vel(3);assert(v>100&&v<=110);   // crossed: picked up
+  assert(test_bro_step(slot,3,8)==v);
   knob=2048;wait_ms(20);v=test_bro_voice_vel(3);assert(v>=60&&v<=68);
-  assert(test_bro_step(slot,3,0)==v);                              // scaled from the snapshot
-  assert(test_bro_step(slot,3,4)==(50*v+50)/100);
-  assert(test_bro_step(slot,3,8)==(127*v+50)/100);
+  assert(test_bro_step(slot,3,8)==v);                              // the loudest hit = the knob
+  assert(test_bro_step(slot,3,0)==(80*v+50)/100);                  // the rest in proportion
+  assert(test_bro_step(slot,3,4)==(40*v+50)/100);
   assert(test_bro_density()==dens);
+  knob=4095;wait_ms(20);assert(test_bro_step(slot,3,8)==127&&test_bro_step(slot,3,0)==102&&test_bro_step(slot,3,4)==51);   // nothing clips
   knob=0;wait_ms(20);assert(test_bro_voice_vel(3)==1&&test_bro_step(slot,3,4)==1);
   for(knob=0;test_bro_voice_vel(3)<100;knob+=4)wait_ms(2);          // back up to 100: restored exactly
   assert(test_bro_voice_vel(3)==100);
-  assert(test_bro_step(slot,3,0)==100&&test_bro_step(slot,3,4)==50&&test_bro_step(slot,3,8)==127);
+  assert(test_bro_step(slot,3,0)==80&&test_bro_step(slot,3,4)==40&&test_bro_step(slot,3,8)==100);
+  // Dead band: a knob wobbling by a few counts changes nothing.
+  {int a=test_bro_step(slot,3,0);uint16_t k=knob;for(int i=0;i<40;i++){knob=(uint16_t)(k+(i&1?12:-12));wait_ms(3);}
+   knob=k;wait_ms(20);assert(test_bro_step(slot,3,0)==a);}
+  // A sound whose hits are all soft reaches the top: one hit at 60 goes to 127.
+  test_bro_seed(slot,6,2,60);knob=0;wait_ms(20);tap(pad_key(6));wait_ms(20);
+  for(knob=0;knob<4095;knob+=16){wait_ms(1);}
+  knob=4095;wait_ms(20);
+  assert(test_bro_step(slot,6,2)==127);
+  knob=0;wait_ms(20);assert(test_bro_step(slot,6,2)==1);test_bro_seed(slot,6,2,0);
+  tap(pad_key(3));wait_ms(20);
   // Another sound picks up afresh: a knob far from its velocity changes nothing.
   knob=200;wait_ms(20);tap(pad_key(5));wait_ms(20);knob=300;wait_ms(20);assert(test_bro_voice_vel(5)==100);
   // Pattern mode: the knob alone is still the density, and velocity is left alone.
@@ -593,6 +606,49 @@ int main(void) {
   #undef STEP
   #undef ONTIME
   system_msg(0xFC);wait_ms(50);test_bro_clear(slot);}
- printf("PASS integration: StepBro note/step/velocity, both transports, six chord orders, four-note audition, hold cleanup, background playback, local Play, chains, Pattern + knob inert, Mute + knob gate length, beat-quantised local restart in DAW time, knob density, recorded rolls, Yummy automation, Drive/Mix pickup, actual v0.2.3 save import, metadata upgrade and Drive retention, Yummy MIDI/audio mutes from Shift+Mute, MIDI out off by default (older saves too), scale-following melodies, Yummy MIDI channel / out / lead pads, USB-only clock, 1 ms Yummy lead with old-save conversion, save-blocker diagnostics, all-notes-off, 1.2.0 LEDs and record playheads, Note-mode velocity knob with pickup and step scaling, roll velocity on the knob (also recorded), Yummy chain entry by double-tapping Pattern, step note edits reach C1..C4 from any knob position, StepBro loop window.\n");
+ // 1.2.0 review fixes: a loop step released under Mute leaves nothing stuck;
+ // the loop range glows; the step-edit dead band; silent saves.
+ {extern int test_bro_held_live(int),test_bro_loop_mask(void),test_bro_grid_note(void),test_bro_selected_pad(void);
+  extern int test_yummy_step_pitch(int),test_yummy_edit_slot(void);extern void test_yummy_set_scale(int);
+  system_msg(0xFC);wait_ms(50);if(test_yummy_active())chord(KEY_GLIDE,KEY_WAVE,KEY_PLAY);
+  if(test_bro_grid_note()){tap(KEY_PATTERN);wait_ms(450);}
+  key(KEY_GLIDE,1);key(pad_key(4),1);wait_ms(20);
+  key(KEY_ACCENT,1);wait_ms(20);key(pad_key(4),0);wait_ms(20);
+  key(KEY_ACCENT,0);key(KEY_GLIDE,0);wait_ms(50);
+  assert(test_bro_loop_mask()==0);
+  tap(KEY_NOTE);wait_ms(450);key(pad_key(4),1);wait_ms(30);key(pad_key(4),0);wait_ms(300);
+  assert(!test_bro_held_live(4));                                  // the sound plays again normally
+  // Loop range glows on empty steps; hits show as usual.
+  tap(KEY_PATTERN);wait_ms(450);
+  int slot=test_bro_active_slot(),vo=test_bro_selected_pad();test_bro_clear(slot);test_bro_seed(slot,vo,3,127);
+  key(KEY_GLIDE,1);key(pad_key(2),1);key(pad_key(5),1);key(pad_key(5),0);key(pad_key(2),0);wait_ms(40);
+  assert(led[2]==20&&led[4]==20&&led[5]==20&&led[3]>20&&led[1]==0&&led[6]==0);
+  key(KEY_GLIDE,0);wait_ms(40);assert(led[2]==0&&led[5]==0);
+  test_bro_clear(slot);
+  // Yummy step edit near the end of the knob: a still, slightly noisy knob holds its note.
+  chord(KEY_GLIDE,KEY_WAVE,KEY_PLAY);assert(test_yummy_active());
+  tap(KEY_FUNCTION);wait_ms(20);if(test_yummy_poly())tap(pad_key(15));
+  test_yummy_set_scale(0);tap(KEY_PATTERN);wait_ms(450);
+  {seq_pattern_t keep=seq_patterns[test_yummy_edit_slot()];seq_pattern_t *q=&seq_patterns[test_yummy_edit_slot()];
+   uint8_t c1=24;q->steps[3].on=1;q->steps[3].tie=0;seq_step_set(q,&q->steps[3],&c1,1);
+   knob=3900;wait_ms(20);key(pad_key(3),1);wait_ms(10);
+   for(int k=3900;k<=4000;k+=4){knob=(uint16_t)k;wait_ms(1);}wait_ms(10);
+   int p0=test_yummy_step_pitch(3);assert(p0>24&&p0<60);
+   for(int i=0;i<60;i++){knob=(uint16_t)(4000+((i%3)-1)*5);wait_ms(2);assert(test_yummy_step_pitch(3)==p0);}
+   knob=4095;wait_ms(10);assert(test_yummy_step_pitch(3)==60);     // the end still reaches C4
+   key(pad_key(3),0);wait_ms(20);seq_patterns[test_yummy_edit_slot()]=keep;}
+  // Silent saves: no Play blink, and no warning flash for a packet lost to a save.
+  tap(KEY_NOTE);wait_ms(20);
+  {extern void test_yummy_drive_set(float);test_yummy_drive_set(0.33f);persist_activity();
+   uint32_t u=7;ui_status(true,true,false,u);
+   int busy=0;for(int i=0;i<6000&&!busy;i++){tick();if(persist_busy())busy=1;}
+   assert(busy);
+   ui_status(true,true,false,++u);
+   for(int i=0;i<20;i++){tick();int all=1;for(int k=0;k<16;k++)if(led[k]!=230)all=0;assert(!all);assert(led[19]!=220);}
+   wait_ms(800);ui_status(true,true,false,++u);wait_ms(12);       // outside a save the warning still works
+   {int all=1;for(int k=0;k<16;k++)if(led[k]!=230)all=0;assert(all);}
+   wait_ms(300);}
+  tap(KEY_NOTE);chord(KEY_GLIDE,KEY_WAVE,KEY_PLAY);assert(!test_yummy_active());}
+ printf("PASS integration: StepBro note/step/velocity, both transports, six chord orders, four-note audition, hold cleanup, background playback, local Play, chains, Pattern + knob inert, Mute + knob gate length, beat-quantised local restart in DAW time, knob density, recorded rolls, Yummy automation, Drive/Mix pickup, actual v0.2.3 save import, metadata upgrade and Drive retention, Yummy MIDI/audio mutes from Shift+Mute, MIDI out off by default (older saves too), scale-following melodies, Yummy MIDI channel / out / lead pads, USB-only clock, 1 ms Yummy lead with old-save conversion, save-blocker diagnostics, all-notes-off, 1.2.0 LEDs and record playheads, Note-mode velocity knob with pickup and step scaling, roll velocity on the knob (also recorded), Yummy chain entry by double-tapping Pattern, step note edits reach C1..C4 from any knob position, StepBro loop window, loop range light, loop pads under Mute, velocity knob on the loudest hit with a dead band, step-edit dead band, silent saves.\n");
  return 0;
 }
