@@ -34,6 +34,12 @@
 - **Saving is silent:** no more Play blink while saving, and no all-LED flash
   for the USB audio packet a save costs (it is silence: saves only run with
   everything stopped). The flash still warns about real dropouts in playback.
+- **Yummy delay:** echoes are stored at 24 kHz instead of 48 kHz, which halves
+  the delay's memory (96 KB to 48 KB; the RP2040 runs the whole program from
+  RAM, so this is room for future features). A half-band filter on the way in
+  and out keeps the echoes flat within about 0.5 dB up to 8 kHz; above that
+  the first echo is a little darker (-3.5 dB at 10 kHz at most). Repeats were
+  already darkened to 3.5 kHz. Delay times are unchanged.
 - Saves are unchanged: patterns and settings from 1.1.0 load as they are.
 
 # 1.1.0 (first public release for the Step Mother 2, RP2040)

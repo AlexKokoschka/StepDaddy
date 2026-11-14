@@ -153,34 +153,72 @@ static void delay_target(voice_t *v) {
   if (v->dl_d == 0) v->dl_d = v->dl_target;
 }
 
+// 1.2.0: the echoes are stored at 24 kHz, half the output rate, which halves
+// the memory (the RP2040 runs the whole program from RAM). A 15-tap half-band
+// filter is used both ways: writing, it keeps out what would fold back (down
+// 37 dB and more above 14.9 kHz) before every second sample is stored;
+// reading, it rebuilds the 48 kHz samples in between, and the delay time is
+// read with linear interpolation at 48 kHz, as before. Flat within 0.5 dB to
+// 8 kHz, -1.6 dB at 10 kHz; repeats are darkened to 3.5 kHz in the feedback.
+// Taps in Q14 (they sum to 0.25 a side), applied to 16-bit samples with plain
+// 32-bit multiplies: no wide products on the M0+.
+#define HB1 5265
+#define HB3 (-1516)
+#define HB5 665
+#define HB7 (-318)
+#define DL_MIN_BACK (7 << 8)              // the rebuild needs 3.5 stored samples ahead
+
+// Stored sample q steps older than the newest (0 = newest); zero if it is from
+// before a cold activation.
+static inline int32_t dl_stored(const voice_t *v, uint32_t newest, uint32_t q) {
+  if (q >= v->dl_valid) return 0;
+  return v->dl_buf[newest >= q ? newest - q : newest + VOICE_DELAY_BUF - q];
+}
+// The rebuilt 48 kHz signal, j samples before the newest stored one.
+static inline int32_t dl_at(const voice_t *v, uint32_t newest, uint32_t j) {
+  uint32_t q = j >> 1;
+  if (!(j & 1)) return dl_stored(v, newest, q);
+  // halfway between stored q (newer) and q + 1 (older)
+  int32_t s = (dl_stored(v, newest, q) + dl_stored(v, newest, q + 1)) * HB1
+            + (dl_stored(v, newest, q - 1) + dl_stored(v, newest, q + 2)) * HB3
+            + (dl_stored(v, newest, q - 2) + dl_stored(v, newest, q + 3)) * HB5
+            + (dl_stored(v, newest, q - 3) + dl_stored(v, newest, q + 4)) * HB7;
+  return s >> 13;                             // x2: half the samples carry the level
+}
+
 static inline int32_t delay(voice_t *v, int32_t in) {
   // glide towards a new delay time (tempo or division change) like tape speeding up
   int32_t diff = v->dl_target - v->dl_d;
   if (diff > 32) v->dl_d += 32; else if (diff < -32) v->dl_d -= 32; else v->dl_d = v->dl_target;
-  // read with linear interpolation
-  uint32_t di = (uint32_t)v->dl_d >> 8, fr = (uint32_t)v->dl_d & 0xFF;
-  uint32_t r0 = v->dl_w + VOICE_DELAY_LEN - di, r1 = r0 + VOICE_DELAY_LEN - 1;
-  r0 %= VOICE_DELAY_LEN; r1 %= VOICE_DELAY_LEN;
-  int32_t a = 0, b = 0;
-  // A cold activation logically clears history in constant time. Until every
-  // location has been overwritten, samples older than dl_valid read as zero.
-  // r0/r1 are di/di+1 samples behind the next write position; age zero wraps
-  // to a full buffer length. Check both interpolation taps independently.
-  if (v->dl_valid == VOICE_DELAY_LEN) {
-    a = v->dl_buf[r0]; b = v->dl_buf[r1];
-  } else {
-    if (di != 0 && di <= v->dl_valid) a = v->dl_buf[r0];
-    if (di + 1 <= v->dl_valid) b = v->dl_buf[r1];
-  }
+  // How far back from the newest stored sample, in 48 kHz samples (Q8): the
+  // storing filter's 7 samples and the 1 or 2 since that sample was stored
+  // are already behind us (the rebuild is symmetric: no delay of its own).
+  int32_t back = v->dl_d - ((9 - (int32_t)v->dl_half) << 8);
+  if (back < DL_MIN_BACK) back = DL_MIN_BACK;
+  uint32_t bi = (uint32_t)back >> 8, fr = (uint32_t)back & 0xFF;
+  uint32_t newest = v->dl_w ? v->dl_w - 1 : VOICE_DELAY_BUF - 1;
+  int32_t a = dl_at(v, newest, bi), b = dl_at(v, newest, bi + 1);
   int32_t echo = (a + (((b - a) * (int32_t)fr) >> 8)) * 8192;   // Q15 -> Q28
   // feedback: darker, less bass, saturated
   v->dl_lp += mul_q30(echo - v->dl_lp, v->g_dl_lp);
   v->dl_hp += mul_q30(v->dl_lp - v->dl_hp, v->g_dl_hp);
   int32_t fb = softclip(mul_q28(v->dl_lp - v->dl_hp, v->dl_fb));
-  int32_t w = (in + fb) >> 13;
-  v->dl_buf[v->dl_w] = (int16_t)(w > 32767 ? 32767 : (w < -32768 ? -32768 : w));
-  if (++v->dl_w >= VOICE_DELAY_LEN) v->dl_w = 0;
-  if (v->dl_valid < VOICE_DELAY_LEN) v->dl_valid++;
+  uint8_t i = (uint8_t)((v->dl_xi + 1) & 15);
+  v->dl_xi = i;
+  int32_t xin = (in + fb) >> 13;              // Q28 -> Q15, as stored
+  v->dl_x[i] = xin > 32767 ? 32767 : (xin < -32768 ? -32768 : xin);
+  if (!v->dl_half) {                          // store one sample in two
+    const int32_t *x = v->dl_x;
+    int32_t w = (x[(i - 7) & 15] * 8192
+              + (x[(i - 6) & 15] + x[(i - 8) & 15]) * HB1
+              + (x[(i - 4) & 15] + x[(i - 10) & 15]) * HB3
+              + (x[(i - 2) & 15] + x[(i - 12) & 15]) * HB5
+              + (x[i] + x[(i - 14) & 15]) * HB7) >> 14;
+    v->dl_buf[v->dl_w] = (int16_t)(w > 32767 ? 32767 : (w < -32768 ? -32768 : w));
+    if (++v->dl_w >= VOICE_DELAY_BUF) v->dl_w = 0;
+    if (v->dl_valid < VOICE_DELAY_BUF) v->dl_valid++;
+  }
+  v->dl_half ^= 1;
   return in + mul_q28(echo, v->dl_wet);
 }
 
@@ -270,7 +308,7 @@ static void derive_params(voice_t *v) {
   // which flushes old echoes; turned on again within that time it just carries
   // on (recorded movements may dip to 0 and back), otherwise history is invalidated.
   if (a > 0.005f) {
-    if (!v->dl_on) { v->dl_valid = 0; v->dl_lp = v->dl_hp = 0; }
+    if (!v->dl_on) { v->dl_valid = 0; v->dl_lp = v->dl_hp = 0; memset(v->dl_x, 0, sizeof(v->dl_x)); }
     v->dl_on = true;
     v->dl_off = 0;
     v->dl_wet = Q28(0.55f * a);

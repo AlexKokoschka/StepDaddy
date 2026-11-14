@@ -1,64 +1,80 @@
-#include "voice303.h"
+// 1.2.0: the delay stores its echoes at 24 kHz. Checks it directly: echo
+// time and level, what the half-band filter keeps out, fractional delay
+// times, stale-history rejection after a cold activation, buffer wrap, and
+// long runs through the voice with tempo and division changes (UBSan).
+#include "../voice/src/voice303.c"
 #include <assert.h>
 #include <stdio.h>
-#include <string.h>
-void ref_voice_init(voice_t *v);
-void ref_voice_set_params(voice_t *v,const voice_params_t *p);
-void ref_voice_set_tempo(voice_t *v,float bpm);
-void ref_voice_note_on(voice_t *v,int note,bool accent,bool legato);
-void ref_voice_note_off(voice_t *v);
-void ref_voice_render(voice_t *v,int16_t *out,int n);
-static voice_t current,reference;
-static unsigned compared;
-static void render(int n){
- int16_t a[16],b[16];
- while(n>0){int k=n<16?n:16;
-  voice_render(&current,a,k);ref_voice_render(&reference,b,k);
-  assert(memcmp(a,b,(size_t)k*sizeof(*a))==0);
-  assert(current.dl_w==reference.dl_w);
-  assert(current.dl_lp==reference.dl_lp&&current.dl_hp==reference.dl_hp);
-  compared+=(unsigned)k;n-=k;
- }
+#include <stdlib.h>
+#define N 12000
+static voice_t v;
+static int32_t in[N], out[N];
+static void setup(float d) {
+  memset(&v, 0, sizeof(v));
+  v.dl_on = true; v.dl_valid = VOICE_DELAY_BUF;
+  v.dl_d = v.dl_target = (int32_t)(d * 256.0f);
+  v.dl_wet = ONE_Q28; v.dl_fb = 0;
 }
-static void amount(float value){
- voice_params_t p=current.p;p.delay_amount=value;
- voice_set_params(&current,&p);ref_voice_set_params(&reference,&p);
-}
-static void tempo(float bpm){voice_set_tempo(&current,bpm);ref_voice_set_tempo(&reference,bpm);}
-int main(void){
- for(int mode=0;mode<2;mode++){
-  voice_init(&current);ref_voice_init(&reference);
-  voice_note_on(&current,48,true,false);ref_voice_note_on(&reference,48,true,false);
-  // Deliberately stale physical memory must stay invisible after activation.
-  for(int i=0;i<VOICE_DELAY_LEN;i++)current.dl_buf[i]=(int16_t)(10000+i%10000);
-  current.dl_w=reference.dl_w=VOICE_DELAY_LEN-7; // exercise wrap immediately
-  voice_params_t p=current.p;p.dist_type=(uint8_t)mode;p.distortion=0.8f;
-  p.delay_time=0.0f;
-  voice_set_params(&current,&p);ref_voice_set_params(&reference,&p);
-  amount(0.7f);assert(current.dl_valid==0);
-  // Activation did not touch history: invalid memory is logically zero.
-  assert(current.dl_buf[123]==10123);
-  render(VOICE_DELAY_LEN*2+13);assert(current.dl_valid==VOICE_DELAY_LEN);
-  // Brief off/on preserves the existing tail, exactly as before.
-  amount(0);render(1703);amount(0.65f);render(6000);
-  // Fully inactive, new activation, and fractional delay-time glide.
-  amount(0);render(VOICE_DELAY_LEN+17);assert(!current.dl_on);
-  for(int i=0;i<VOICE_DELAY_LEN;i++)current.dl_buf[i]=12345;
-  amount(0.8f);assert(current.dl_valid==0);
-  tempo(173.0f);render(VOICE_DELAY_LEN+9);
-  // Repeated activations and automation while history is partially valid.
-  for(int j=0;j<8;j++){
-   amount(0);render(j%2?VOICE_DELAY_LEN+3:100);
-   amount(0.2f+(float)j*0.08f);
-   p=current.p;p.delay_time=(float)(j%6)/6.0f;
-   voice_set_params(&current,&p);ref_voice_set_params(&reference,&p);
-   tempo(60.0f+(float)j*19.0f);render(1137);
+static void run(int n) { for (int i = 0; i < n; i++) out[i] = delay(&v, in[i]); }
+static double rms_echo_error(float d, int from, int to) {   // echo vs the input d samples ago
+  double e = 0, s = 0;
+  for (int i = from; i < to; i++) {
+    double t = i - d; int k = (int)t; double f = t - k;
+    double want = in[k] * (1 - f) + in[k + 1] * f;
+    double got = (double)out[i] - in[i];
+    e += (got - want) * (got - want); s += want * want;
   }
-  voice_note_off(&current);ref_voice_note_off(&reference);render(VOICE_DELAY_LEN*2);
-  // Extreme supported API input to exercise di=0 and both fractional taps.
-  amount(0);render(VOICE_DELAY_LEN+1);tempo(10000000.0f);
-  p=current.p;p.delay_time=0;voice_set_params(&current,&p);ref_voice_set_params(&reference,&p);
-  amount(0.5f);render(VOICE_DELAY_LEN*2+33);
- }
- printf("PASS delay reset: %u bit-identical samples vs the reference voice, stale-history rejection, wrap, fractional reads, rapid toggles and full-off reactivation\n",compared);
+  return sqrt(e / s);
+}
+static void sine(float hz, float amp) {
+  for (int i = 0; i < N; i++) in[i] = Q28(amp * sinf(6.2831853f * hz * i / VOICE_FS));
+}
+int main(void) {
+  assert(sizeof(v.dl_buf) == 49152);                         // half of the old 96 KB
+  // An impulse comes back once, d samples later, at full level.
+  for (int d = 1000; d <= 1001; d++) {
+    setup((float)d); memset(in, 0, sizeof(in)); in[0] = Q28(0.5f); run(3000);
+    int peak = 0; double sum = 0;
+    for (int i = 1; i < 3000; i++) { if (abs(out[i]) > abs(out[peak ? peak : 1])) peak = i; if (i > d - 12 && i < d + 12) sum += out[i]; }
+    assert(abs(peak - d) <= 1);
+    assert(fabs(sum / Q28(0.5f) - 1.0) < 0.02);
+    for (int i = 1; i < 3000; i++) if (i < d - 12 || i > d + 12) assert(abs(out[i]) < Q28(0.001f));
+  }
+  // 1 kHz and 6 kHz: echoes match the input exactly delayed (also fractional delays).
+  float ds[3] = {1000.0f, 1000.5f, 7321.25f};
+  for (int j = 0; j < 3; j++) {
+    sine(1000, 0.5f); setup(ds[j]); run(N); assert(rms_echo_error(ds[j], (int)ds[j] + 40, N - 2) < 0.02);
+    sine(6000, 0.5f); setup(ds[j]); run(N); assert(rms_echo_error(ds[j], (int)ds[j] + 40, N - 2) < 0.1);
+  }
+  // 16 kHz is kept out of the echo (it would otherwise fold back to 8 kHz).
+  sine(16000, 0.5f); setup(1000); run(N);
+  { double e = 0, s = 0; for (int i = 1100; i < N; i++) { double x = (double)out[i] - in[i]; e += x * x; s += (double)in[i] * in[i]; }
+    assert(sqrt(e / s) < 0.03); }                            // below -30 dB
+  // Stale memory after a cold activation reads as silence.
+  setup(500); for (int i = 0; i < VOICE_DELAY_BUF; i++) v.dl_buf[i] = (int16_t)(10000 + i % 10000);
+  v.dl_valid = 0; memset(in, 0, sizeof(in)); run(4000);
+  for (int i = 0; i < 4000; i++) assert(out[i] == 0);
+  assert(v.dl_buf[3000] == 13000);                           // and was never cleared in bulk
+  // Wrap round the end of the buffer.
+  setup(1000); v.dl_w = VOICE_DELAY_BUF - 3; memset(in, 0, sizeof(in)); in[0] = Q28(0.5f); run(3000);
+  { int peak = 1; for (int i = 1; i < 3000; i++) if (abs(out[i]) > abs(out[peak])) peak = i; assert(abs(peak - 1000) <= 1); }
+  // The longest delay (1/4 at 20 BPM is clipped to the buffer) and the shortest.
+  setup(VOICE_DELAY_LEN - 4); sine(500, 0.5f); run(N);
+  setup(16); sine(500, 0.5f); run(N); assert(rms_echo_error(16, 60, N - 2) < 0.02);
+  // Through the voice: notes, delay toggles, tempo and division changes.
+  unsigned rendered = 0;
+  for (int mode = 0; mode < 2; mode++) {
+    voice_init(&v); voice_note_on(&v, 48, true, false);
+    voice_params_t p = v.p; p.dist_type = (uint8_t)mode; p.distortion = 0.8f; p.delay_amount = 0.7f;
+    for (int j = 0; j < 12; j++) {
+      p.delay_time = (float)(j % 6) / 6.0f; p.delay_amount = (j % 3) ? 0.2f + 0.06f * j : 0.0f;
+      voice_set_params(&v, &p); voice_set_tempo(&v, 60.0f + 19.0f * j);
+      if (j % 4 == 0) voice_note_on(&v, 40 + j, j & 1, false);
+      int16_t buf[64];
+      for (int k = 0; k < 900; k++) { voice_render(&v, buf, 64); rendered += 64; }
+    }
+    voice_set_tempo(&v, 10000000.0f); { int16_t buf[64]; for (int k = 0; k < 200; k++) { voice_render(&v, buf, 64); rendered += 64; } }
+  }
+  printf("PASS delay at 24 kHz: echo time and level, fractional delays, half-band keeps 16 kHz below -30 dB, stale history silent, wrap, %u voice samples under UBSan\n", rendered);
+  return 0;
 }

@@ -185,11 +185,13 @@ fitted to audio measurements of a reference 303 emulation.
 
 The constants live in `voice/src/voice303.c` (filter and level, in the block
 that computes `k_full` and `level_fit`) and `voice/src/voice_profile.h`
-(Cutoff, Env Mod and Decay mappings). Two things must follow any change there:
+(Cutoff, Env Mod and Decay mappings). `voice/host/knob_behavior_test.c`
+checks the mapping values: update it with any change there.
 
-- `tests/reference_voice303.c` mirrors the filter: the delay test compares
-  whole-voice output against it, sample for sample.
-- `voice/host/knob_behavior_test.c` checks the mapping values.
+The delay stores its echoes at 24 kHz (1.2.0), with a 15-tap half-band filter
+on the way in and on the way out; `tests/delay.c` checks echo time and level,
+what the filter keeps out, fractional delays, stale history and the buffer
+wrap.
 
 Run the voice tests with `make -C voice test profile-test stress-test`.
 
@@ -338,7 +340,7 @@ about 12.5 KiB of static RAM margin, program and constants run from RAM.
 | Resource | Step Mother 1 |
 |---|---|
 | RAM | 1 MB; DTCM gap about 210 KB |
-| Largest RAM user | Yummy's delay line, 96 KB (about 1 s at 48 kHz) |
+| Largest RAM user | Yummy's delay line, 48 KB (about 1 s, stored at 24 kHz) |
 | Program flash | 8 MB, about 120 KB used; saves in a 1 MB LittleFS area at its end |
 | Saves | Files `/merged-v1-a.bin` and `/merged-v1-b.bin` |
 | Audio | 48 kHz, 16-bit, stereo (dual mono), into the computer only |

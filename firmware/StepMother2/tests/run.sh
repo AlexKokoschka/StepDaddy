@@ -21,8 +21,6 @@ python3 tests/test_decoder.py
 python3 tests/test_led_init.py
 gcc $ccflags tests/profile.c src/profile.c -o tests/build/profile_test
 tests/build/profile_test
-refnames='-Dvoice_init=ref_voice_init -Dvoice_set_params=ref_voice_set_params -Dvoice_set_tempo=ref_voice_set_tempo -Dvoice_chord_on=ref_voice_chord_on -Dvoice_note_on=ref_voice_note_on -Dvoice_note_off=ref_voice_note_off -Dvoice_render=ref_voice_render -Dvoice_delay_div=ref_voice_delay_div -Dvoice_delay_div_names=ref_voice_delay_div_names'
-gcc $ccflags $refnames -c tests/reference_voice303_pass3.c -o tests/build/reference_voice.o
-gcc $ccflags tests/delay.c voice/src/voice303.c tests/build/reference_voice.o -lm -o tests/build/delay_test
+gcc $ccflags tests/delay.c -lm -o tests/build/delay_test
 tests/build/delay_test
 make -C voice test profile-test stress-test

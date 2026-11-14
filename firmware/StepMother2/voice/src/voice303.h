@@ -44,7 +44,9 @@ typedef struct {
   float delay_amount;// 0 = off .. 1 = long dub tails (echo level and feedback together)
 } voice_params_t;
 
-#define VOICE_DELAY_LEN   49152   // samples of delay memory (~1 s, 96 KB)
+#define VOICE_DELAY_LEN   49152   // delay span in 48 kHz samples (~1 s)
+// 1.2.0: echoes are stored at half rate (24 kHz): ~1 s in 48 KB instead of 96.
+#define VOICE_DELAY_BUF   (VOICE_DELAY_LEN / 2)
 #define VOICE_DELAY_DIVS  6
 extern const char *const voice_delay_div_names[VOICE_DELAY_DIVS];
 int voice_delay_div(float delay_time);   // knob value -> division index
@@ -96,9 +98,12 @@ typedef struct {
   int32_t  dist_wet_step;
 
   // --- delay ---
-  int16_t  dl_buf[VOICE_DELAY_LEN];
-  uint32_t dl_valid;                  // valid newest delay samples since cold activation
-  uint32_t dl_w;                      // write position
+  int16_t  dl_buf[VOICE_DELAY_BUF];   // 24 kHz
+  uint32_t dl_valid;                  // valid newest stored samples since cold activation
+  uint32_t dl_w;                      // next write position (24 kHz)
+  uint8_t  dl_half;                   // 0: this 48 kHz sample writes one at 24 kHz
+  uint8_t  dl_xi;                     // newest entry in dl_x
+  int32_t  dl_x[16];                  // 48 kHz history for the half-band decimator (Q15)
   int32_t  dl_d, dl_target;           // delay in samples (Q8), glides to the target
   int32_t  dl_lp, dl_hp;              // feedback tone (darker each repeat, no mud)
   int32_t  g_dl_lp, g_dl_hp;          // (Q30)
