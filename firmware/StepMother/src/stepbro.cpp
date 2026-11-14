@@ -41,6 +41,8 @@ void recalcLoopLengthFor(uint8_t s);
 void recalcLoopLength();
 bool anyPatternPadHeld();
 void handleKnob();
+void handleNoteVelocityKnob(uint16_t raw);
+void handleRollVelocityKnob(uint16_t raw);
 void handlePlayStopPress();
 void onMidiClock();
 void resetMidiLead();
@@ -358,6 +360,24 @@ uint16_t densityLevel = 1023;
 bool densityKnobMoved = false;
 bool densityRearm = true;                  // take a new baseline on the next knob pass
 uint16_t densityKnobBaseline = 0;
+// 1.2.0: in Note mode the knob on its own sets the selected sound's velocity
+// (density is Pattern mode only). It picks up: nothing changes until the knob
+// crosses the current velocity. Turning then also scales the velocities
+// already programmed for that sound, from a snapshot taken at pickup, so the
+// accents keep their shape and turning back restores them.
+bool noteVelArmed = false;
+bool noteVelPicked = false;
+bool noteVelAbove = false;                 // knob was above the target when armed
+uint8_t noteVelVoice = 0, noteVelSlot = 0, noteVelStart = 0;
+uint8_t noteVelSnap[MAX_STEPS];            // the sound's steps at pickup
+const uint16_t NOTE_VEL_PICKUP_TOL = 12;   // ADC counts: "at" the target
+// 1.2.0: while a pad rolls (Shift + pad), the knob rides the velocity of the
+// repeats. No pickup: it takes over from the current velocity, scaled so the
+// knob's two ends reach 1 and 127 whatever the starting position.
+bool rollKnobActive = false;
+bool rollKnobMoved = false;
+uint16_t rollKnobBaseline = 0;
+uint8_t rollKnobStartVel[16];
 
 // Held-modifier tracking
 bool shiftHeld = false;
@@ -1481,6 +1501,73 @@ bool anyPatternPadHeld() {
   return false;
 }
 
+// 1.2.0: the knob on its own in Note mode. See noteVelArmed.
+void handleNoteVelocityKnob(uint16_t raw) {
+  uint8_t voice = lastSelectedVoice[currentStream];
+  uint8_t slot = activeSlot[currentStream];
+  uint16_t target = map(voiceVelocity[voice], 1, 127, 0, ADC_MAX);
+  if (!noteVelArmed || voice != noteVelVoice || slot != noteVelSlot) {
+    noteVelArmed = true;
+    noteVelPicked = false;
+    noteVelVoice = voice;
+    noteVelSlot = slot;
+    noteVelAbove = raw > target;
+  }
+  if (!noteVelPicked) {
+    int16_t d = (int16_t)raw - (int16_t)target;
+    if (d < 0) d = -d;
+    if ((raw > target) == noteVelAbove && d > (int16_t)NOTE_VEL_PICKUP_TOL) return;
+    noteVelPicked = true;
+    noteVelStart = voiceVelocity[voice];
+    for (uint8_t st = 0; st < MAX_STEPS; st++) noteVelSnap[st] = state.slots[slot].steps[voice][st];
+  }
+  uint8_t vel = map(raw, 0, ADC_MAX, 1, 127);
+  if (vel == voiceVelocity[voice]) return;
+  voiceVelocity[voice] = vel;
+  bool changed = false;
+  for (uint8_t st = 0; st < MAX_STEPS; st++) {
+    if (!noteVelSnap[st]) continue;
+    uint16_t n = ((uint16_t)noteVelSnap[st] * vel + noteVelStart / 2) / noteVelStart;
+    if (n < 1) n = 1;
+    if (n > 127) n = 127;
+    uint8_t &step = state.slots[slot].steps[voice][st];
+    if (step != n) { step = (uint8_t)n; changed = true; }
+  }
+  if (changed) markDirty();
+}
+
+// 1.2.0: the knob while pads roll. See rollKnobActive.
+void handleRollVelocityKnob(uint16_t raw) {
+  if (!rollKnobActive) {
+    rollKnobActive = true;
+    rollKnobMoved = false;
+    rollKnobBaseline = raw;
+    for (uint8_t p = 0; p < 16; p++)
+      if (repeatVoiceForPad[p] >= 0) rollKnobStartVel[p] = voiceVelocity[repeatVoiceForPad[p]];
+  }
+  if (!rollKnobMoved) {
+    int16_t delta = (int16_t)raw - (int16_t)rollKnobBaseline;
+    if (delta < 0) delta = -delta;
+    if (delta <= (int16_t)KNOB_MOVE_DEADZONE) return;
+    rollKnobMoved = true;
+  }
+  for (uint8_t p = 0; p < 16; p++) {
+    int8_t v = repeatVoiceForPad[p];
+    if (v < 0) continue;
+    int32_t v0 = rollKnobStartVel[p], vel;
+    if (raw >= rollKnobBaseline) {
+      int32_t span = ADC_MAX - rollKnobBaseline;
+      vel = span ? v0 + ((int32_t)(raw - rollKnobBaseline) * (127 - v0) + span / 2) / span : v0;
+    } else {
+      int32_t span = rollKnobBaseline;
+      vel = v0 - ((int32_t)(rollKnobBaseline - raw) * (v0 - 1) + span / 2) / span;
+    }
+    if (vel < 1) vel = 1;
+    if (vel > 127) vel = 127;
+    voiceVelocity[v] = (uint8_t)vel;
+  }
+}
+
 void handleKnob() {
   uint16_t raw = readKnob();
 
@@ -1491,7 +1578,17 @@ void handleKnob() {
     densityKnobMoved = false;
     densityKnobBaseline = raw;
     densityRearm = false;
+    noteVelArmed = false;
   }
+
+  // 1.2.0: a rolling pad owns the knob: it rides the repeats' velocity.
+  if (anyNoteRepeatActive()) {
+    handleRollVelocityKnob(raw);
+    shiftKnobMoved = false;                // Shift still down after the roll: swing
+    shiftKnobBaseline = raw;               // must not jump to where the knob went
+    return;
+  }
+  rollKnobActive = false;
 
   // v26.9: Play held while the DAW is stopped sets the MIDI lead, 0..16ms in
   // 1ms steps (v26.9.1). Only while stopped: Play is the local stop/start while the DAW
@@ -1515,8 +1612,16 @@ void handleKnob() {
 
   // 0.3.3: the knob on its own sets the density. Like the other knob
   // controls it takes over only once moved, so touching a modifier and
-  // letting go never jumps it.
+  // letting go never jumps it. 1.2.0: Pattern mode only; in Note mode the
+  // knob on its own is the selected sound's velocity.
+  if (bare && gridMode == MODE_NOTE) {
+    densityKnobMoved = false;              // back in Pattern mode: no jump
+    densityKnobBaseline = raw;
+    handleNoteVelocityKnob(raw);
+    return;
+  }
   if (bare) {
+    noteVelArmed = false;                  // back in Note mode: pick up afresh
     if (!densityKnobMoved) {
       int16_t delta = (int16_t)raw - (int16_t)densityKnobBaseline;
       if (delta < 0) delta = -delta;
@@ -2250,6 +2355,7 @@ void handleNoteRepeatPad(uint8_t padIndex, bool pressed) {
     // to a stream it never started on, leaving voiceHeldLive stuck set and
     // that voice permanently skipped by playback.
     repeatStreamForPad[padIndex] = currentStream;
+    rollKnobActive = false;                // 1.2.0: re-baseline the roll velocity knob
 
     // Select it, exactly as an ordinary note-pad press would, so the grid and
     // a following switch to Pattern mode both land on what was just played.

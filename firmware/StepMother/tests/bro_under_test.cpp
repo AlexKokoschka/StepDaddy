@@ -17,5 +17,8 @@ int test_bro_recording(void) {return bro::recordArmed;}
 int test_bro_last_step(void) {return bro::lastTriggeredStep;}
 int test_bro_selected_pad(void) {return bro::lastSelectedVoice[0]-bro::noteBankWindow[0]*16;}
 int test_bro_grid_note(void) {return bro::gridMode==bro::MODE_NOTE;}
+int test_bro_voice_vel(int v) {return bro::voiceVelocity[v];}
+int test_bro_density(void) {return bro::densityLevel;}
+int test_bro_swing(void) {return bro::state.slots[bro::activeSlot[0]].shuffle;}
 void test_bro_seed(int slot,int voice,int step,int vel) {bro::state.slots[slot].steps[voice][step]=vel;bro::recalcHasContent(slot);bro::recalcLoopLength();}
 }

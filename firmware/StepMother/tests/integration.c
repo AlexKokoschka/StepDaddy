@@ -438,6 +438,61 @@ int main(void) {
   tap(pad_key(15));wait_ms(20);assert(test_yummy_poly()&&led[15]==140);
   tap(pad_key(15));tap(pad_key(13));wait_ms(20);assert(!test_yummy_poly()&&!test_yummy_midi_out()&&led[13]==0&&led[15]==0);
   tap(KEY_NOTE);chord(KEY_GLIDE,KEY_WAVE,KEY_PLAY);assert(!test_yummy_active());}
- printf("PASS integration: StepBro note/step/velocity, both transports, six chord orders, four-note audition, hold cleanup, background playback, local Play, chains, Pattern + knob inert, Mute + knob gate length, beat-quantised local restart in DAW time, knob density, recorded rolls, Yummy automation, Drive/Mix pickup, actual v0.2.3 save import, metadata upgrade and Drive retention, Yummy MIDI/audio mutes from Shift+Mute, MIDI out off by default (older saves too), scale-following melodies, Yummy MIDI channel / out / lead pads, USB-only clock, 1 ms Yummy lead with old-save conversion, save-blocker diagnostics, all-notes-off, 1.2.0 LEDs and record playheads.\n");
+ // 1.2.0: Note mode: the knob alone is the selected sound's velocity, with
+ // pickup, scaling its programmed steps; density only in Pattern mode. The
+ // knob during a roll rides the repeats' velocity, also when recorded.
+ {extern int test_bro_voice_vel(int),test_bro_density(void),test_bro_swing(void),test_bro_grid_note(void);
+  system_msg(0xFC);wait_ms(50);
+  if(test_yummy_active())chord(KEY_GLIDE,KEY_WAVE,KEY_PLAY);
+  if(test_bro_chain_on()){tap(KEY_PATTERN);wait_ms(450);tap(KEY_PATTERN);tap(KEY_PATTERN);tap(KEY_PATTERN);wait_ms(450);}
+  if(!test_bro_grid_note()){tap(KEY_NOTE);wait_ms(450);}
+  assert(test_bro_grid_note());
+  int slot=test_bro_active_slot();test_bro_clear(slot);
+  test_bro_seed(slot,3,0,100);test_bro_seed(slot,3,4,50);test_bro_seed(slot,3,8,127);
+  knob=400;wait_ms(20);tap(pad_key(3));wait_ms(20);
+  assert(test_bro_voice_vel(3)==100);int dens=test_bro_density();
+  knob=2000;wait_ms(20);assert(test_bro_voice_vel(3)==100);        // below 100: not picked up yet
+  assert(test_bro_step(slot,3,4)==50&&test_bro_density()==dens);   // and density untouched
+  knob=3400;wait_ms(20);int v=test_bro_voice_vel(3);assert(v>100&&v<=110);   // crossed: picked up
+  knob=2048;wait_ms(20);v=test_bro_voice_vel(3);assert(v>=60&&v<=68);
+  assert(test_bro_step(slot,3,0)==v);                              // scaled from the snapshot
+  assert(test_bro_step(slot,3,4)==(50*v+50)/100);
+  assert(test_bro_step(slot,3,8)==(127*v+50)/100);
+  assert(test_bro_density()==dens);
+  knob=0;wait_ms(20);assert(test_bro_voice_vel(3)==1&&test_bro_step(slot,3,4)==1);
+  for(knob=0;test_bro_voice_vel(3)<100;knob+=4)wait_ms(2);          // back up to 100: restored exactly
+  assert(test_bro_voice_vel(3)==100);
+  assert(test_bro_step(slot,3,0)==100&&test_bro_step(slot,3,4)==50&&test_bro_step(slot,3,8)==127);
+  // Another sound picks up afresh: a knob far from its velocity changes nothing.
+  knob=200;wait_ms(20);tap(pad_key(5));wait_ms(20);knob=300;wait_ms(20);assert(test_bro_voice_vel(5)==100);
+  // Pattern mode: the knob alone is still the density, and velocity is left alone.
+  tap(KEY_PATTERN);wait_ms(450);assert(!test_bro_grid_note());
+  knob=1000;wait_ms(20);knob=3000;wait_ms(20);assert(test_bro_density()!=dens);
+  assert(test_bro_voice_vel(5)==100);
+  knob=4095;wait_ms(20);tap(KEY_NOTE);wait_ms(450);assert(test_bro_grid_note());
+  // Roll: the knob rides the velocity, no jump, both ends reachable.
+  int swing=test_bro_swing();
+  knob=2048;wait_ms(20);
+  int v0=test_bro_voice_vel(3);
+  key(KEY_GLIDE,1);key(pad_key(3),1);wait_ms(20);
+  assert(test_bro_voice_vel(3)==v0&&test_bro_swing()==swing);      // pressing: no jump
+  knob=4095;wait_ms(20);assert(test_bro_voice_vel(3)==127);
+  knob=0;wait_ms(20);assert(test_bro_voice_vel(3)==1);
+  knob=2048;wait_ms(20);v=test_bro_voice_vel(3);assert(v>=v0-2&&v<=v0+2);
+  assert(test_bro_swing()==swing);                                 // never swing during a roll
+  knob=0;wait_ms(20);key(pad_key(3),0);wait_ms(20);assert(test_bro_swing()==swing);   // Shift still held: no jump
+  key(KEY_GLIDE,0);wait_ms(20);
+  // Recorded roll: the hits carry the velocity ridden on the knob.
+  test_bro_clear(slot);knob=2048;wait_ms(20);
+  wait_ms(450);tap(KEY_NOTE);tap(KEY_NOTE);assert(test_bro_recording());
+  system_msg(0xFA);clocks(6);
+  key(KEY_GLIDE,1);key(pad_key(3),1);clocks(6*4);
+  knob=4095;wait_ms(20);clocks(6*4);knob=0;wait_ms(20);clocks(6*4);
+  key(pad_key(3),0);key(KEY_GLIDE,0);
+  {int hi=0,lo=0;for(int k=0;k<32;k++){int x=test_bro_step(slot,3,k);if(x>=120)hi++;if(x&&x<=10)lo++;}
+   assert(hi>=2&&lo>=2);}
+  tap(KEY_NOTE);assert(!test_bro_recording());system_msg(0xFC);wait_ms(50);
+  test_bro_clear(slot);knob=0;wait_ms(20);}
+ printf("PASS integration: StepBro note/step/velocity, both transports, six chord orders, four-note audition, hold cleanup, background playback, local Play, chains, Pattern + knob inert, Mute + knob gate length, beat-quantised local restart in DAW time, knob density, recorded rolls, Yummy automation, Drive/Mix pickup, actual v0.2.3 save import, metadata upgrade and Drive retention, Yummy MIDI/audio mutes from Shift+Mute, MIDI out off by default (older saves too), scale-following melodies, Yummy MIDI channel / out / lead pads, USB-only clock, 1 ms Yummy lead with old-save conversion, save-blocker diagnostics, all-notes-off, 1.2.0 LEDs and record playheads, Note-mode velocity knob with pickup and step scaling, roll velocity on the knob (also recorded).\n");
  return 0;
 }
