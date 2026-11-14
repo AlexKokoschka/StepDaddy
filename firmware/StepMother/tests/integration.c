@@ -493,6 +493,36 @@ int main(void) {
    assert(hi>=2&&lo>=2);}
   tap(KEY_NOTE);assert(!test_bro_recording());system_msg(0xFC);wait_ms(50);
   test_bro_clear(slot);knob=0;wait_ms(20);}
- printf("PASS integration: StepBro note/step/velocity, both transports, six chord orders, four-note audition, hold cleanup, background playback, local Play, chains, Pattern + knob inert, Mute + knob gate length, beat-quantised local restart in DAW time, knob density, recorded rolls, Yummy automation, Drive/Mix pickup, actual v0.2.3 save import, metadata upgrade and Drive retention, Yummy MIDI/audio mutes from Shift+Mute, MIDI out off by default (older saves too), scale-following melodies, Yummy MIDI channel / out / lead pads, USB-only clock, 1 ms Yummy lead with old-save conversion, save-blocker diagnostics, all-notes-off, 1.2.0 LEDs and record playheads, Note-mode velocity knob with pickup and step scaling, roll velocity on the knob (also recorded).\n");
+ // 1.2.0: Yummy chain entry as on StepBro: double-tap Pattern, tap slots,
+ // finish with Pattern, Note or Function. Holding Pattern picks one slot.
+ {extern int test_yummy_chain_len(void),test_yummy_chain_at(int),test_yummy_edit_slot(void),test_yummy_chain_entry(void);
+  system_msg(0xFC);wait_ms(50);
+  if(!test_yummy_active())chord(KEY_GLIDE,KEY_WAVE,KEY_PLAY);
+  assert(test_yummy_active());
+  tap(KEY_PATTERN);wait_ms(450);assert(test_yummy_page()==1&&!test_yummy_chain_entry());
+  tap(KEY_PATTERN);tap(KEY_PATTERN);assert(test_yummy_chain_entry());
+  wait_ms(20);{int a=led[17];wait_ms(260);assert(led[17]!=a);}     // Pattern blinks
+  tap(pad_key(2));tap(pad_key(5));tap(pad_key(2));
+  tap(KEY_PATTERN);assert(!test_yummy_chain_entry());
+  assert(test_yummy_chain_len()==3&&test_yummy_chain_at(0)==2&&test_yummy_chain_at(1)==5&&test_yummy_chain_at(2)==2);
+  assert(test_yummy_edit_slot()==2);
+  // Finishing with Note, and one slot: plays on its own, the chain ends.
+  wait_ms(450);tap(KEY_PATTERN);tap(KEY_PATTERN);assert(test_yummy_chain_entry());
+  tap(pad_key(7));tap(KEY_NOTE);assert(!test_yummy_chain_entry()&&test_yummy_page()==0);
+  assert(test_yummy_chain_len()==0&&test_yummy_edit_slot()==7);
+  // Finishing with Function.
+  tap(KEY_PATTERN);wait_ms(450);tap(KEY_PATTERN);tap(KEY_PATTERN);assert(test_yummy_chain_entry());
+  tap(pad_key(1));tap(pad_key(3));tap(KEY_FUNCTION);assert(!test_yummy_chain_entry()&&test_yummy_page()==2);
+  assert(test_yummy_chain_len()==2&&test_yummy_chain_at(0)==1&&test_yummy_chain_at(1)==3);
+  // No slots tapped: nothing changes.
+  tap(KEY_PATTERN);wait_ms(450);tap(KEY_PATTERN);tap(KEY_PATTERN);assert(test_yummy_chain_entry());
+  tap(KEY_PATTERN);assert(!test_yummy_chain_entry()&&test_yummy_chain_len()==2);
+  // Holding Pattern and tapping slots picks one (the last), and ends the chain.
+  wait_ms(450);key(KEY_PATTERN,1);wait_ms(30);tap(pad_key(4));tap(pad_key(6));key(KEY_PATTERN,0);wait_ms(20);
+  assert(!test_yummy_chain_entry()&&test_yummy_chain_len()==0&&test_yummy_edit_slot()==6);
+  wait_ms(450);key(KEY_PATTERN,1);wait_ms(30);tap(pad_key(0));key(KEY_PATTERN,0);wait_ms(450);
+  assert(test_yummy_edit_slot()==0);
+  tap(KEY_NOTE);chord(KEY_GLIDE,KEY_WAVE,KEY_PLAY);assert(!test_yummy_active());}
+ printf("PASS integration: StepBro note/step/velocity, both transports, six chord orders, four-note audition, hold cleanup, background playback, local Play, chains, Pattern + knob inert, Mute + knob gate length, beat-quantised local restart in DAW time, knob density, recorded rolls, Yummy automation, Drive/Mix pickup, actual v0.2.3 save import, metadata upgrade and Drive retention, Yummy MIDI/audio mutes from Shift+Mute, MIDI out off by default (older saves too), scale-following melodies, Yummy MIDI channel / out / lead pads, USB-only clock, 1 ms Yummy lead with old-save conversion, save-blocker diagnostics, all-notes-off, 1.2.0 LEDs and record playheads, Note-mode velocity knob with pickup and step scaling, roll velocity on the knob (also recorded), Yummy chain entry by double-tapping Pattern.\n");
  return 0;
 }

@@ -21,9 +21,12 @@
 //   Hold a pad + knob  move that step's note (or whole chord) up/down the scale.
 //                      Chord steps light a little brighter than single notes.
 //   Accent + tap / Glide + tap / Accent + Glide + tap: accent / slide / tie.
-//   Hold Pattern + tap select pattern 1-16. Tap several slots (repeats allowed)
-//                      while holding Pattern: chain them, played in that order;
-//                      the Pattern page follows the pattern that's playing.
+//   Hold Pattern + tap select pattern 1-16 (ends a chain).
+//   Double-tap Pattern: chain entry (Pattern blinks). Tap slots in order
+//                      (repeats allowed), then tap Pattern, Note or Function to
+//                      finish: the chain plays in that order and the Pattern
+//                      page follows the pattern that's playing. (1.2.0, as on
+//                      StepBro; before, slots were tapped while holding Pattern.)
 //   Hold Pattern + Function + tap a slot: erase that pattern (notes and settings).
 //   Hold Pattern + Glide: tap the source slot (blinks), then the destination:
 //                      copy; the copy becomes the pattern you edit and play.
@@ -177,6 +180,8 @@ static uint32_t tr_turn_ms;
 // Pattern chain: slots tapped while Pattern is held
 static uint8_t  chain_build[SEQ_CHAIN_MAX];
 static int      chain_build_n;
+static bool     chain_entry;                       // 1.2.0: double-tap Pattern, tap slots, finish
+static uint32_t pattern_tap_ms;                    // for the Pattern double-tap
 static uint8_t  ui_chain[SEQ_CHAIN_MAX];
 static int      ui_chain_len;                      // 0 = no chain
 
@@ -1030,6 +1035,19 @@ static void set_chain(const uint8_t *c, int n) {
   seq_chain_version++;                               // the sequencer takes it at the end of the pattern
 }
 
+// 1.2.0: end chain entry: two or more slots make a chain, one slot plays on
+// its own (ends a chain), none changes nothing.
+static void chain_finish(void) {
+  if (!chain_entry) return;
+  chain_entry = false;
+  if (chain_build_n == 1) set_chain(chain_build, 0);
+  else if (chain_build_n >= 2) {
+    set_chain(chain_build, chain_build_n);
+    if (!playing) edit_slot = chain_build[0];
+  }
+  chain_build_n = 0;
+}
+
 static void erase_pattern(int slot) {
   memset(&seq_patterns[slot], 0, sizeof(seq_patterns[slot]));
   memset(autom[slot], AUTO_NONE, sizeof(autom[slot]));
@@ -1060,6 +1078,7 @@ static void handle_keys(void) {
   if (pressed & (1u << KEY_FUNCTION)) fn_key_used = false;
   if (function && (pressed & ~(1u << KEY_FUNCTION))) fn_key_used = true;
   if ((released & (1u << KEY_FUNCTION)) && !fn_key_used) {
+    chain_finish();                                    // 1.2.0: another mode ends chain entry
     leave_page_holds();
     if (page == PAGE_FUNCTION) page = page_before_function;
     else { page_before_function = page; page = PAGE_FUNCTION; fn_select(FP_CUTOFF); }
@@ -1068,6 +1087,7 @@ static void handle_keys(void) {
   if (pressed & (1u << KEY_NOTE)) {
     // Double-tap Note: record. A tap while recording (or armed) stops it.
     uint32_t now = now_ms();
+    chain_finish();                                    // 1.2.0: another mode ends chain entry
     if (page == PAGE_NOTE && rec_armed) { rec_armed = false; now = 0; }
     else if (page == PAGE_NOTE && note_tap_ms && now - note_tap_ms <= DOUBLE_TAP_MS) { rec_armed = true; now = 0; }
     leave_page_holds();
@@ -1075,16 +1095,20 @@ static void handle_keys(void) {
     note_tap_ms = now;
   }
   if (pressed & (1u << KEY_PATTERN)) {
-    leave_page_holds(); page = PAGE_PATTERN; chain_build_n = 0; copy_src = -1;
+    // 1.2.0: Pattern ends chain entry; a double-tap starts it.
+    uint32_t now = now_ms();
+    if (chain_entry) { chain_finish(); now = 0; }
+    else if (page == PAGE_PATTERN && pattern_tap_ms && now - pattern_tap_ms <= DOUBLE_TAP_MS) {
+      chain_entry = true; chain_build_n = 0; now = 0;
+    }
+    pattern_tap_ms = now;
+    leave_page_holds(); page = PAGE_PATTERN; copy_src = -1;
+    if (!chain_entry) chain_build_n = 0;
     tr_knob_start = panel_knob(); tr_base = pat()->transpose; tr_active = false;
   }
-  if (released & (1u << KEY_PATTERN)) {
-    // One slot tapped: just that pattern (ends a chain). Several: a chain.
-    if (chain_build_n == 1) set_chain(chain_build, 0);
-    else if (chain_build_n >= 2) {
-      set_chain(chain_build, chain_build_n);
-      if (!playing) edit_slot = chain_build[0];
-    }
+  if ((released & (1u << KEY_PATTERN)) && !chain_entry) {
+    // A slot picked while holding Pattern plays on its own: it ends a chain.
+    if (chain_build_n) set_chain(chain_build, 0);
     chain_build_n = 0;
   }
 
@@ -1115,13 +1139,15 @@ static void handle_keys(void) {
         else { copy_pattern(copy_src, pad); copy_src = -1; }
       } else if (pattern_held && function) {          // erase that pattern
         erase_pattern(pad);
-      } else if (pattern_held) {                      // select pattern slot / build a chain
-        if (chain_build_n == 0) {
-          edit_slot = (uint8_t)pad;
-          seq_pattern_next = edit_slot;
-          tr_knob_start = panel_knob(); tr_base = pat()->transpose; tr_active = false;   // transpose this one now
-        }
+      } else if (chain_entry) {                       // 1.2.0: chain entry: add the slot
+        if (chain_build_n == 0) { edit_slot = (uint8_t)pad; seq_pattern_next = edit_slot; }
         if (chain_build_n < SEQ_CHAIN_MAX) chain_build[chain_build_n++] = (uint8_t)pad;
+        copy_flash_pad = pad; copy_flash_until = now_ms() + 150;   // brief flash: taken
+      } else if (pattern_held) {                      // select pattern slot (the last tap wins)
+        edit_slot = (uint8_t)pad;
+        seq_pattern_next = edit_slot;
+        tr_knob_start = panel_knob(); tr_base = pat()->transpose; tr_active = false;   // transpose this one now
+        chain_build[0] = (uint8_t)pad; chain_build_n = 1;
       } else if (page == PAGE_FUNCTION && function) {  // Function + pad: clear its recording
         int a = auto_index(pad);
         if (a >= 0) {
@@ -1370,7 +1396,7 @@ static void update_leds(void) {
     }
     if (copy_src >= 0) pads[copy_src] = blink ? L_BRIGHT : L_OFF;   // source chosen: blinks
     if (now < copy_flash_until && copy_flash_pad >= 0) pads[copy_flash_pad] = blink ? L_FULL : L_OFF;
-  } else if (keys & (1u << KEY_PATTERN)) {            // pattern select view
+  } else if ((keys & (1u << KEY_PATTERN)) || chain_entry) {   // pattern select view / chain entry
     // Slots with notes dim, empty slots off, the selected slot pulses.
     uint32_t ph = now % 800;
     uint8_t pulse = (uint8_t)(2 + (ph < 400 ? ph : 800 - ph) * 38 / 400);
@@ -1436,8 +1462,9 @@ static void update_leds(void) {
   if (recording) note_led = fast_blink ? L_FULL : L_OFF;
   else if (rec_armed) note_led = blink ? L_BRIGHT : L_OFF;      // armed, waiting for the pattern to run
   leds_set(LED_NOTE, note_led);
-  leds_set(LED_PATTERN, (keys & (1u << KEY_PATTERN)) ? (blink ? L_BRIGHT : L_DIM)
-                                                     : (page == PAGE_PATTERN ? L_BRIGHT : L_OFF));
+  leds_set(LED_PATTERN, chain_entry ? (blink ? L_BRIGHT : L_OFF)   // 1.2.0: chain entry blinks
+                      : (keys & (1u << KEY_PATTERN)) ? (blink ? L_BRIGHT : L_DIM)
+                      : (page == PAGE_PATTERN ? L_BRIGHT : L_OFF));
   leds_set(LED_WAVE, params.wave == WAVE_SQUARE ? L_BRIGHT : L_OFF);
   uint8_t play = L_OFF;
   bool beat = head >= 0 && head % 4 == 0;
@@ -1471,7 +1498,8 @@ void ui_set_active(bool active) {
     held_sounding=false;
     leave_page_holds();
     rec_armed=false; auto_armed=-1; rec_pads=0; group_n=0;
-    note_tap_ms=0; auto_tap_pad=-1; chain_build_n=0; copy_src=-1;
+    chain_finish();                                   // 1.2.0: keep the slots tapped so far
+    note_tap_ms=0; pattern_tap_ms=0; auto_tap_pad=-1; chain_build_n=0; copy_src=-1;
     fn_key_used=true; wave_combo=false; wave_was_held=false; wave_turned=false;
   }
   knob_release_target();
