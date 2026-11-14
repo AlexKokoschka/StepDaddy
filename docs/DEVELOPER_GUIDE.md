@@ -1,6 +1,6 @@
 # Step Mother developer guide
 
-Firmware 1.1.0 · November 2026
+Firmware 1.2.0 · November 2026
 
 ## Overview
 
@@ -330,7 +330,7 @@ that, everything works with the case shut.
 
 ## Reference
 
-### Limits that shape changes (1.1.0)
+### Limits that shape changes (1.2.0)
 
 Teensy 4.1 (Step Mother 1). For the RP2040 see `firmware/StepMother2/README.md`:
 about 12.5 KiB of static RAM margin, program and constants run from RAM.

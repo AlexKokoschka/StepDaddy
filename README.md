@@ -59,6 +59,9 @@ before anything else, so it works even if the rest of the firmware misbehaves.
   [synth programming (Yummy Gummy)](https://youtu.be/CbF5JtVqbY4).
 - **User manuals** (PDF): [StepBro](docs/manuals/StepBro_User_Manual_v1.0.0.pdf)
   and [Yummy Gummy](docs/manuals/Yummy_User_Manual_v1.0.0.pdf).
+- **Quick references** (one page each, firmware 1.2.0):
+  [StepBro](docs/manuals/StepBro_Quick_Reference_v1.2.0.pdf) and
+  [Yummy Gummy](docs/manuals/Yummy_Quick_Reference_v1.2.0.pdf).
 - **[Developer guide](docs/DEVELOPER_GUIDE.md)**: changing the firmware,
   writing your own, installing it, and the panel's wiring.
 - **Hardware:** the [StepMother](https://github.com/AlexKokoschka/StepMother) repository (PCB and enclosure).
