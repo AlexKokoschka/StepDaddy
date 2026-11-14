@@ -11,6 +11,11 @@
   accents keep their shape. Density is now Pattern mode only.
 - **StepBro, note repeat:** while a pad rolls (Shift + pad), the knob rides the
   velocity of the repeats, and a recorded roll keeps it.
+- **StepBro, Pattern mode: loop window.** Hold Shift and press a step: that
+  step repeats while you hold it. Hold a step and press a second: the steps
+  between them loop for as long as Shift is down, even with the steps let go.
+  Let go of Shift and the full pattern carries on where it would have been. The
+  loop starts on the next sixteenth and uses the 16 steps in view (Bank).
 - **Yummy, Note page:** the playhead runs while recording is armed. Scale is
   dark until held; Oct - / + are dark at octave 0 and lit below / above it.
 - **Yummy, Function page:** MIDI Out and Mono/Poly are dark when off / mono
@@ -18,6 +23,10 @@
 - **Yummy, chains:** as on StepBro: double-tap Pattern, tap the slots, then tap
   Pattern, Note or Function to finish. Holding Pattern and tapping a slot picks
   that one pattern.
+- **Yummy, Pattern page (fix):** holding a step and turning now reaches the
+  lowest and highest note of the Note page's range (C1 to C4, in the scale)
+  from any knob position. Before, the range depended on where the knob sat
+  when you grabbed the step, and could shrink to a few notes.
 - Saves are unchanged: patterns and settings from 1.1.0 load as they are.
 
 ## 1.1.0

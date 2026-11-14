@@ -41,6 +41,9 @@ void recalcLoopLengthFor(uint8_t s);
 void recalcLoopLength();
 bool anyPatternPadHeld();
 void handleKnob();
+void loopPadPress(uint8_t padIndex);
+void loopPadRelease(uint8_t padIndex);
+void loopStop();
 void handleNoteVelocityKnob(uint16_t raw);
 void handleRollVelocityKnob(uint16_t raw);
 void handlePlayStopPress();
@@ -640,6 +643,23 @@ const uint16_t PATTERN_DOUBLE_TAP_MS = 400;  // max gap between the two taps
 
 uint8_t streamLocalNow[NUM_STREAMS] = {0};   // real step each stream is on
 
+// ---------------------------------------------------------------------------
+// 1.2.0: LOOP WINDOW (Pattern mode). Shift + a step: that step repeats while
+// it is held. Shift + a held step + a second step: the steps between them loop
+// for as long as Shift is down, even with the steps let go. Letting go of
+// Shift returns to the full pattern where it would have been: the timeline
+// never stopped, the loop only replaces which step the edited stream plays.
+// It starts on the next sixteenth, uses the 16 steps in view (Bank), and
+// affects StepBro only. Not saved.
+// ---------------------------------------------------------------------------
+int8_t   loopPadA = -1;          // the first step pad held, -1 = none
+uint8_t  loopStartStep = 0;      // first looped step (0..31)
+uint8_t  loopLen = 0;            // steps in the loop, 0 = off
+uint8_t  loopCount = 0;          // steps played since the loop started
+bool     loopLatched = false;    // two steps: keeps looping until Shift is let go
+uint8_t  loopStream = 0;
+uint16_t loopPadsMask = 0;       // pads used for the loop: their releases are swallowed
+
 inline uint8_t globalLoopLen() {
   uint8_t len = 16;
   for (uint8_t s = 0; s < NUM_STREAMS; s++) {
@@ -759,6 +779,7 @@ void onKeyEvent(int8_t key, bool pressed) {
 
   if (key == K_SHIFT) {
     shiftHeld = pressed;
+    if (!pressed) loopStop();                   // 1.2.0: back to the full pattern
     if (pressed) {
       shiftKnobBaseline = readKnob(); // v26.2: see muteKnobBaseline
       shiftKnobMoved = false;
@@ -1056,6 +1077,17 @@ void onKeyEvent(int8_t key, bool pressed) {
 
   if (chainEditing) {                       // v26.10: chain mode: pads add slots
     if (pressed) chainEditPad(padIndex);
+    return;
+  }
+
+  // 1.2.0: loop window. A pad used for it never toggles its step.
+  if (!pressed && (loopPadsMask & (1u << padIndex))) {
+    loopPadRelease(padIndex);
+    return;
+  }
+  if (pressed && gridMode == MODE_PATTERN && shiftHeld && !muteHeld && !clearHeld &&
+      !patternHeld && !playHeld) {
+    loopPadPress(padIndex);
     return;
   }
 
@@ -1908,6 +1940,40 @@ void onMidiStop() {
   if (dirty) forceSave();
 }
 
+#define BRO_LOOP_COLD __attribute__((noinline, optimize("Os")))
+// 1.2.0: the loop window. See loopPadA.
+BRO_LOOP_COLD void loopPadPress(uint8_t padIndex) {
+  uint8_t step = currentStepBank[currentStream] * 16 + padIndex;
+  loopPadsMask |= (uint16_t)(1u << padIndex);
+  loopStream = currentStream;
+  if (loopPadA < 0) {                         // one step: a stutter while held
+    loopPadA = (int8_t)padIndex;
+    loopStartStep = step;
+    loopLen = 1;
+    loopLatched = false;
+  } else {                                    // a second: the range, until Shift is let go
+    uint8_t a = currentStepBank[currentStream] * 16 + (uint8_t)loopPadA;
+    loopStartStep = a < step ? a : step;
+    loopLen = (uint8_t)((a < step ? step - a : a - step) + 1);
+    loopLatched = true;
+  }
+  loopCount = 0;                              // from the next sixteenth
+}
+
+BRO_LOOP_COLD void loopPadRelease(uint8_t padIndex) {
+  loopPadsMask &= (uint16_t)~(1u << padIndex);
+  if ((int8_t)padIndex == loopPadA) {
+    loopPadA = -1;
+    if (!loopLatched) loopLen = 0;            // a one-step stutter ends with the pad
+  }
+}
+
+void loopStop() {
+  loopLen = 0;
+  loopPadA = -1;
+  loopLatched = false;                        // pads still down stay in loopPadsMask:
+}                                             // their releases are still swallowed
+
 void advancePlayhead() {
   // v26: playhead is now the GLOBAL step. Each stream reduces it modulo its
   // own loop length, which is the whole mechanism by which a 1-bar pattern
@@ -1934,6 +2000,14 @@ void advancePlayhead() {
 
   // v26.10: each stream's real step (chains count their own).
   for (uint8_t s = 0; s < NUM_STREAMS; s++) streamLocalNow[s] = streamStepFor(s, thisStep);
+  // 1.2.0: the loop window replaces the edited stream's step; the timeline runs on.
+  if (loopLen) {
+    if (gridMode != MODE_PATTERN || !shiftHeld) loopStop();
+    else {
+      streamLocalNow[loopStream] = (uint8_t)(loopStartStep + loopCount % loopLen);
+      loopCount = (uint8_t)((loopCount + 1) % loopLen);
+    }
+  }
 
   // 0.3.3: locally stopped = the timeline runs on silently. An armed restart
   // comes in on the next beat (every 4th step of the DAW's bar).
