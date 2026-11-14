@@ -1,0 +1,255 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Yummy Gummy Synthesizer / Layer 2 user manual</title><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}
+
+/* Layout: a single reading column; every instruction is a row of physical key
+   glyphs on the left and plain language on the right. Palette is taken from
+   the instrument itself — cream caps, candy dots. */
+:root{
+  --paper:#ffffff;
+  --panel:#f7f4ed;
+  --ink:#231f1c;
+  --ink-soft:#5f574e;
+  --rule:#ddd5c5;
+  --cap:#fffdf7;
+  --cap-edge:#c9bfa9;
+  --pink:#e8628c;
+  --yellow:#faef19;
+  --blue:#56c2ef;
+  --green:#7cc242;
+  --coal:#080605;
+  --accent:var(--pink);
+  --shadow:0 1px 0 rgba(35,31,28,.06), 0 6px 18px rgba(35,31,28,.07);
+  --f-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --f-body:"Source Sans 3",system-ui,-apple-system,Segoe UI,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#1a1715;
+    --panel:#241f1c;
+    --ink:#f3ece0;
+    --ink-soft:#a79a8a;
+    --rule:#3a322c;
+    --cap-edge:#5a4e44;
+    --shadow:0 1px 0 rgba(0,0,0,.4), 0 8px 22px rgba(0,0,0,.35);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#1a1715;
+  --panel:#241f1c;
+  --ink:#f3ece0;
+  --ink-soft:#a79a8a;
+  --rule:#3a322c;
+  --cap-edge:#5a4e44;
+  --shadow:0 1px 0 rgba(0,0,0,.4), 0 8px 22px rgba(0,0,0,.35);
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--f-body);
+  font-size:17px;
+  line-height:1.6;
+  padding-inline:20px;
+  padding-block:0;
+}
+.wrap{max-width:860px;margin:0 auto;padding-block:48px 72px}
+
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0}
+h1{font-weight:900;font-size:clamp(2.6rem,9vw,4.4rem);line-height:.95;letter-spacing:-.03em}
+h2{font-weight:800;font-size:clamp(1.5rem,4.4vw,2rem);letter-spacing:-.02em;line-height:1.1}
+h3{font-weight:700;font-size:1.06rem;letter-spacing:-.01em}
+p{margin:0}
+
+.eyebrow{
+  font-family:var(--f-display);font-weight:700;font-size:.72rem;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft);
+}
+
+/* ---------- masthead ---------- */
+.mast{display:flex;flex-direction:column;gap:18px;padding-bottom:36px;border-bottom:3px solid var(--ink)}
+.mast .sub{font-size:1.18rem;color:var(--ink-soft);max-width:34em}
+.dotline{display:flex;gap:7px;align-items:center}
+.dotline i{width:13px;height:13px;border-radius:50%;display:block}
+
+section{padding-block:44px;border-bottom:1px solid var(--rule)}
+section:last-of-type{border-bottom:0}
+.lede{color:var(--ink-soft);max-width:36em;margin-top:12px}
+
+/* ---------- contents ----------
+   Section numbers come from a counter rather than being typed in, so adding,
+   removing or reordering a section renumbers both the headings and this list.
+   The two counters run over the same sequence, so they stay in step. */
+.wrap{counter-reset:sect}
+section > h2::before{
+  counter-increment:sect;
+  content:counter(sect) ".\00a0";
+  color:var(--accent);
+}
+.toc{padding-block:38px;border-bottom:1px solid var(--rule)}
+.toc-title{font-size:1.05rem;font-weight:700;letter-spacing:.01em;margin-bottom:14px}
+.toc ol{counter-reset:toc;list-style:none;margin:0;padding:0;
+  columns:2;column-gap:38px}
+.toc li{counter-increment:toc;break-inside:avoid;margin-bottom:7px}
+.toc a{
+  display:flex;gap:9px;align-items:baseline;text-decoration:none;color:var(--ink);
+  border-bottom:1px solid transparent;padding-block:1px;
+}
+.toc a::before{content:counter(toc) ".";color:var(--accent);
+  font-family:var(--f-display);font-weight:700;font-size:.86rem;min-width:1.15em}
+.toc a:hover{color:var(--accent)}
+@media (max-width:620px){ .toc ol{columns:1} }
+
+/* ---------- key glyphs ---------- */
+.key{width:44px;height:44px;flex:0 0 auto;color:var(--cap-edge);display:block}
+.key.sm{width:34px;height:34px}
+
+/* the keyboard map */
+.keymap{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:14px;margin-top:26px}
+.keycard{
+  background:var(--panel);border:1px solid var(--rule);border-radius:12px;
+  padding:16px;display:flex;flex-direction:column;align-items:flex-start;gap:10px;
+  box-shadow:var(--shadow);
+}
+.keycard .nm{font-family:var(--f-display);font-weight:800;font-size:1.02rem}
+.keycard .ds{font-size:.9rem;color:var(--ink-soft);line-height:1.45}
+
+/* ---------- combo rows ---------- */
+.rows{display:flex;flex-direction:column;gap:2px;margin-top:22px}
+.row{
+  display:grid;grid-template-columns:minmax(0,164px) minmax(0,1fr);
+  gap:18px;align-items:start;padding:14px 0;border-top:1px solid var(--rule);
+}
+.row:first-child{border-top:0}
+.combo{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
+.plus{font-family:var(--f-display);font-weight:700;color:var(--ink-soft);font-size:1rem;line-height:1}
+.hold{
+  font-family:var(--f-display);font-weight:700;font-size:.6rem;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink-soft);
+  border:1px solid var(--rule);border-radius:999px;padding:3px 7px;line-height:1;white-space:nowrap;
+}
+.pad{
+  width:34px;height:34px;border-radius:8px;background:var(--panel);
+  border:1px solid var(--cap-edge);display:grid;place-items:center;
+  font-family:var(--f-mono);font-size:.68rem;color:var(--ink-soft);flex:0 0 auto;
+}
+.knob{
+  width:34px;height:34px;border-radius:50%;background:var(--panel);
+  border:2px solid var(--cap-edge);position:relative;flex:0 0 auto;
+}
+.knob::after{content:"";position:absolute;left:50%;top:4px;width:2px;height:10px;
+  background:var(--ink-soft);transform:translateX(-50%) rotate(28deg);transform-origin:50% 120%;border-radius:2px}
+.what{min-width:0}
+.what b{font-weight:600;display:block;font-size:1.02rem}
+.what span{display:block;color:var(--ink-soft);font-size:.94rem;line-height:1.5;margin-top:3px}
+
+/* ---------- light language ---------- */
+.lights{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-top:24px}
+.lite{display:flex;gap:13px;align-items:flex-start;background:var(--panel);
+  border:1px solid var(--rule);border-radius:11px;padding:14px}
+.lamp{width:17px;height:17px;border-radius:50%;flex:0 0 auto;margin-top:3px;background:var(--pink)}
+.lamp.full{box-shadow:0 0 0 4px rgba(232,98,140,.22)}
+.lamp.dim{opacity:.34}
+.lamp.off{background:transparent;border:2px solid var(--rule)}
+.lamp.dip{animation:dip 300ms steps(1,end) infinite}
+.lamp.flash{animation:flash 400ms steps(1,end) infinite}
+.lamp.slow{animation:flash 1000ms steps(1,end) infinite}
+.lamp.pulse{animation:flash 500ms steps(1,end) infinite}
+@keyframes dip{0%,73%{opacity:1}74%,100%{opacity:.08}}
+@keyframes flash{0%,49%{opacity:1}50%,100%{opacity:.12}}
+@media (prefers-reduced-motion:reduce){
+  .lamp.dip,.lamp.flash,.lamp.slow,.lamp.pulse{animation:none;opacity:.6}
+}
+.lite b{font-weight:600;display:block}
+.lite span{display:block;color:var(--ink-soft);font-size:.92rem;line-height:1.45;margin-top:2px}
+
+/* ---------- streams ---------- */
+.streams{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-top:24px}
+.stream{background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:18px;
+  border-top:5px solid var(--accent);box-shadow:var(--shadow)}
+.stream.b{border-top-color:var(--blue)}
+.stream.c{border-top-color:var(--green)}
+.stream .tag{font-family:var(--f-display);font-weight:900;font-size:1.5rem;letter-spacing:-.02em}
+.stream dl{margin:12px 0 0;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:.93rem}
+.stream dt{color:var(--ink-soft)}
+.stream dd{margin:0;font-family:var(--f-mono);font-size:.86rem}
+
+/* ---------- steps ---------- */
+ol.steps{margin:24px 0 0;padding:0;list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:14px}
+ol.steps li{counter-increment:s;display:grid;grid-template-columns:auto 1fr;gap:15px;align-items:start}
+ol.steps li::before{
+  content:counter(s);font-family:var(--f-display);font-weight:900;font-size:.82rem;
+  width:27px;height:27px;border-radius:50%;background:var(--ink);color:var(--paper);
+  display:grid;place-items:center;margin-top:1px
+}
+code{font-family:var(--f-mono);font-size:.88em;background:var(--panel);
+  border:1px solid var(--rule);border-radius:5px;padding:1px 5px}
+
+.note{
+  margin-top:24px;background:var(--panel);border:1px solid var(--rule);
+  border-left:5px solid var(--accent);border-radius:0 11px 11px 0;padding:17px 19px;
+}
+.note b{font-family:var(--f-display);font-weight:800;display:block;margin-bottom:5px;font-size:.98rem}
+.note p{color:var(--ink-soft);font-size:.96rem}
+
+footer{padding-block:34px;color:var(--ink-soft);font-size:.9rem;display:flex;
+  justify-content:space-between;gap:14px;flex-wrap:wrap;border-top:3px solid var(--ink)}
+
+@media (max-width:620px){
+  body{font-size:16px}
+  .row{grid-template-columns:1fr;gap:11px}
+  .wrap{padding-block:36px 56px}
+}
+
+/* ---------- print ----------
+   Paper cannot blink, so the four moving light states are redrawn as a row of
+   dots showing their on/off pattern; the caption beside each one still carries
+   the speed, which is the part a strip of dots can't show. */
+.lite .strip,.printonly{display:none}
+@media print{
+  :root{
+    --paper:#fff; --panel:#f7f4ed; --ink:#231f1c; --ink-soft:#4a443d;
+    --rule:#cfc6b4; --cap-edge:#b4a991; --shadow:none;
+    color-scheme:light;
+  }
+  @page{margin:16mm 14mm}
+  body{
+    background:#fff;font-size:10.5pt;padding-inline:0;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact;
+  }
+  .wrap{max-width:none;padding-block:0}
+  h1{font-size:40pt}
+  h2{font-size:17pt}
+  h3{font-size:11pt}
+  .mast{padding-bottom:18px}
+  .mast .sub{font-size:12pt}
+  section{padding-block:0;border-bottom:0}
+  .keycard,.lite,.stream,.note,.row,ol.steps li,.keymap{break-inside:avoid}
+  h1,h2{break-after:avoid}
+  /* One section per printed page. Erasing is the deliberate exception: it is
+     short and belongs beside Muting, so it runs on rather than starting a
+     page of its own. The masthead and contents own page 1. */
+  section{break-before:page}
+  #erasing{break-before:auto;padding-top:30px}
+  .toc{border-bottom:0;padding-block:26px 0}
+  .toc ol{columns:1}
+  .toc a{color:var(--ink);border-bottom:1px dotted var(--rule);padding-bottom:3px}
+  .toc li{margin-bottom:10px}
+  /* On paper a link is unclickable, so the page number has to be printed. */
+  .toc a::after{
+    content:attr(data-page);margin-left:auto;padding-left:12px;
+    color:var(--ink-soft);font-variant-numeric:tabular-nums;
+  }
+  .keycard,.lite,.stream,.note{box-shadow:none}
+  /* animation cannot survive a PDF: swap each moving lamp for its pattern */
+  .lamp.dip,.lamp.flash,.lamp.slow,.lamp.pulse{display:none}
+  .lite .strip{display:flex;gap:3px;flex:0 0 auto;margin-top:5px;align-items:center}
+  .lite .strip i{width:8px;height:8px;border-radius:50%;background:var(--pink);display:block;flex:0 0 auto}
+  .lite .strip i.off{background:transparent;border:1.5px solid #a89d89}
+  .printonly{display:block;color:var(--ink-soft);font-size:9.5pt;margin-top:14px;font-style:italic}
+}
+ .namedkey{display:inline-flex;flex-direction:column;align-items:center;gap:3px}.namedkey small{font-size:10px;line-height:1.2;color:var(--ink-soft)}.combo{flex-wrap:wrap}.what span{display:block}table{width:100%;border-collapse:collapse;margin:22px 0;font-size:.94em}th,td{padding:10px 12px;border:1px solid var(--rule);text-align:left;vertical-align:top}th{background:var(--panel)}.review{font-size:.9rem;color:var(--ink-soft)}@media print{.toc a::after{content:none}section{break-before:auto; padding-top:22px}#erasing{padding-top:22px}.row{break-inside:avoid}table{font-size:9pt}tr{break-inside:avoid}.mast{break-after:avoid}} 
+:root{--accent:#dc8b20}.hero{margin:28px 0}.hero img{width:100%;max-height:420px;object-fit:contain;background:#eae7e3;border-radius:12px}.hero figcaption{font-size:.85rem;color:var(--ink-soft);margin-top:8px}h3{margin:28px 0 10px}.gesture{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin:18px 0 9px}.gesture .key{width:56px;height:56px}.gesture .plus{font-size:16px}.panelgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin:20px 0}.panelgrid div{padding:14px 5px;background:var(--panel);border:1px solid var(--rule);border-radius:8px;text-align:center;font-size:.85rem}.panelgrid strong{display:block;color:var(--accent)}.toc ol{columns:2}table{display:table}td,th{overflow-wrap:break-word}@media(max-width:620px){.toc ol{columns:1}th,td{padding:8px;font-size:.87em}.panelgrid{gap:5px}.panelgrid div{padding:10px 3px;font-size:.75rem}}@media print{.hero img{max-height:220px}.gesture{break-after:avoid}.toc ol{columns:2}.toc a::after{content:none}}
+</style></head><body><svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><symbol id="y-note" viewBox="0 0 64 64"><rect x="3" y="3" width="58" height="58" rx="9" fill="#fffdf7" stroke="#baaf9e"/><rect x="10" y="10" width="44" height="4" rx="2" fill="#e5a43a"/><text x="32" y="38" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#231f1c">Note</text></symbol><symbol id="y-pattern" viewBox="0 0 64 64"><rect x="3" y="3" width="58" height="58" rx="9" fill="#fffdf7" stroke="#baaf9e"/><rect x="10" y="10" width="44" height="4" rx="2" fill="#e5a43a"/><text x="32" y="38" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#231f1c">Pattern</text></symbol><symbol id="y-glide" viewBox="0 0 64 64"><rect x="3" y="3" width="58" height="58" rx="9" fill="#fffdf7" stroke="#baaf9e"/><rect x="10" y="10" width="44" height="4" rx="2" fill="#e5a43a"/><text x="32" y="38" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#231f1c">Glide</text></symbol><symbol id="y-accent" viewBox="0 0 64 64"><rect x="3" y="3" width="58" height="58" rx="9" fill="#fffdf7" stroke="#baaf9e"/><rect x="10" y="10" width="44" height="4" rx="2" fill="#e5a43a"/><text x="32" y="38" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#231f1c">Accent</text></symbol><symbol id="y-wave" viewBox="0 0 64 64"><rect x="3" y="3" width="58" height="58" rx="9" fill="#fffdf7" stroke="#baaf9e"/><rect x="10" y="10" width="44" height="4" rx="2" fill="#e5a43a"/><text x="32" y="38" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#231f1c">Wave</text></symbol><symbol id="y-function" viewBox="0 0 64 64"><rect x="3" y="3" width="58" height="58" rx="9" fill="#fffdf7" stroke="#baaf9e"/><rect x="10" y="10" width="44" height="4" rx="2" fill="#e5a43a"/><text x="32" y="38" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#231f1c">Function</text></symbol><symbol id="y-play" viewBox="0 0 64 64"><rect x="3" y="3" width="58" height="58" rx="9" fill="#fffdf7" stroke="#baaf9e"/><rect x="10" y="10" width="44" height="4" rx="2" fill="#e5a43a"/><text x="32" y="38" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#231f1c">Play</text></symbol><symbol id="y-knob" viewBox="0 0 64 64"><rect x="3" y="3" width="58" height="58" rx="9" fill="#fffdf7" stroke="#baaf9e"/><rect x="10" y="10" width="44" height="4" rx="2" fill="#e5a43a"/><text x="32" y="38" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#231f1c">Knob</text></symbol><symbol id="y-pad" viewBox="0 0 64 64"><rect x="3" y="3" width="58" height="58" rx="9" fill="#fffdf7" stroke="#baaf9e"/><rect x="10" y="10" width="44" height="4" rx="2" fill="#e5a43a"/><text x="32" y="38" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#231f1c">Pad</text></symbol><symbol id="y-scale" viewBox="0 0 64 64"><rect x="3" y="3" width="58" height="58" rx="9" fill="#fffdf7" stroke="#baaf9e"/><rect x="10" y="10" width="44" height="4" rx="2" fill="#e5a43a"/><text x="32" y="38" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#231f1c">Scale</text></symbol></defs></svg><main class="wrap"><header class="mast"><div class="dotline"><i style="background:#e8628c"></i><i style="background:#faef19"></i><i style="background:#56c2ef"></i><i style="background:#7cc242"></i></div><h1>Yummy Gummy Synthesizer - Layer 2</h1><p class="sub">A 303-style synthesizer and step sequencer for the Step Mother.</p><p>Play notes and chords, build and chain patterns, record knob movements, and connect USB audio and MIDI to your music software.</p></header><nav class="toc" aria-label="Contents"><h2 class="toc-title">Contents</h2><ol><li><a href="#section-1">Connect and play</a></li><li><a href="#section-2">Panel and note selection</a></li><li><a href="#section-3">Build and record patterns</a></li><li><a href="#section-4">Organize patterns</a></li><li><a href="#section-5">Shape the sound</a></li><li><a href="#section-6">Record knob movements</a></li><li><a href="#section-7">USB MIDI and synchronization</a></li><li><a href="#section-8">Saving and troubleshooting</a></li><li><a href="#section-9">MIDI reference</a></li></ol></nav><div class="panelgrid" aria-label="Yummy function keys"><div><strong>NOTE</strong>Play and record</div><div><strong>PATTERN</strong>Steps and slots</div><div><strong>GLIDE</strong>Slide modifier</div><div><strong>ACCENT</strong>Accent modifier</div><div><strong>WAVE</strong>Wave and volume</div><div><strong>FUNCTION</strong>Sound and settings</div><div><strong>PLAY</strong>Mute / unmute</div><div><strong>KNOB</strong>Cutoff and values</div></div><section id="section-1"><h2>Connect and play</h2><h3>Connect the USB audio device</h3><div class="gesture" role="img" aria-label="wave + knob"><svg class="key" aria-hidden="true"><use href="#y-wave"/></svg><span class="plus">+</span><svg class="key" aria-hidden="true"><use href="#y-knob"/></svg></div><p>1. Connect the board to your computer using a USB data cable. It appears as Step Mother, one device for both audio and MIDI.</p><p>2. In your music application, select Step Mother as an audio input. The firmware sends two-channel, 16-bit audio at 48 kHz.</p><p>3. Create an audio track using that input and enable monitoring. Listen through the computer or your audio interface. Begin with a low monitoring level.</p><p>4. Switch the panel to Yummy: hold GLIDE, WAVE and PLAY together, then release them. Tap NOTE and press a note pad. Hold WAVE and turn the knob to adjust Yummy’s volume.</p><p>This manual covers USB audio.</p><h3>Switch between Yummy and StepBro</h3><p>The board runs two instruments at once: Yummy, and the StepBro MIDI sequencer, which has its own manual. The panel shows one of them at a time. Hold SHIFT/GLIDE, BANK/WAVE and PLAY together, in any order, to switch; StepBro calls these keys Shift, Bank and Play. The WAVE LED blinks slowly while Yummy is shown. Switching never starts, stops or mutes either instrument, and the board starts on the StepBro level after power-up.</p><h3>Hear the sequencer</h3><p>Yummy always follows your music software’s MIDI clock: it plays when the software sends clock and Start, and stops with it; see USB MIDI and synchronization. There is no internal tempo. PLAY mutes and unmutes Yummy on the beat.</p><p>A demo occupies pattern slot 1 when no saved data has been loaded. Saved work is restored on later power-ups.</p><h3>Make your first pattern</h3><p>1. Hold PATTERN, tap an unused slot, then release PATTERN. Empty slots are unlit in this view.</p><p>2. Tap NOTE, then tap a note pad to select and hear a pitch.</p><p>3. Tap PATTERN. Briefly tap pads 1, 5, 9 and 13 to place that note on those steps. A brief tap on an occupied step removes it.</p><p>4. Hold ACCENT and tap step 1 to add an accent. Release ACCENT.</p><p>5. Start your music software’s transport. Turn the knob to change filter cutoff. If the value does not move immediately, sweep past its stored position to pick it up.</p><p>6. Stop the transport. Release all keys and allow a few seconds for automatic saving before disconnecting.</p><h3>Read the instructions</h3><p>“Tap” means press and release. “Hold X + tap Y” means keep X pressed while tapping Y. Pads are numbered 1–16, left to right, top to bottom. A pattern is one stored sequence; a step is one position inside it. Steps run at sixteenth-note intervals.</p></section><section id="section-2"><h2>Panel and note selection</h2><p>These key drawings identify the Yummy functions; they are schematic and do not specify final keycap artwork.</p><table><thead><tr><th>Control</th><th>Main operation</th></tr></thead><tbody><tr><td>NOTE</td><td>Open the Note page. Double-tap to arm note recording.</td></tr><tr><td>PATTERN</td><td>Open the Pattern page. Hold to select a slot; double-tap to build a chain.</td></tr><tr><td>GLIDE / ACCENT</td><td>Hold and tap steps on the Pattern page to add slide or accent.</td></tr><tr><td>GLIDE + ACCENT</td><td>Hold and tap steps on the Pattern page to add ties.</td></tr><tr><td>WAVE</td><td>Tap to switch sawtooth and square. Hold and turn the knob for volume.</td></tr><tr><td>FUNCTION</td><td>Tap to open the Function page; tap again to return. Also acts as a modifier.</td></tr><tr><td>PLAY</td><td>Mute / unmute the pattern.</td></tr><tr><td>GLIDE + WAVE + PLAY</td><td>Switch the panel to StepBro and back. Both keep playing.</td></tr><tr><td>Knob</td><td>Cutoff normally; selected parameter on the Function page; other functions while keys are held.</td></tr></tbody></table><h3>Note page pad layout</h3><table><thead><tr><th>Left</th><th>Center left</th><th>Center right</th><th>Right</th></tr></thead><tbody><tr><td>1  C</td><td>2  C♯</td><td>3  D</td><td>4  D♯</td></tr><tr><td>5  E</td><td>6  F</td><td>7  F♯</td><td>8  G</td></tr><tr><td>9  G♯</td><td>10  A</td><td>11  A♯</td><td>12  B</td></tr><tr><td>13  C</td><td>14  Scale</td><td>15  Octave down</td><td>16  Octave up</td></tr></tbody></table><p>Tap a note to hear it and select it for placement. Notes in the scale glow; roots are brighter and selected notes are bright. The Scale pad stays dark until you hold it. Out-of-scale pads play the nearest scale note; an exact halfway pitch snaps upward. The initial key and scale are A minor.</p><p>Pads 15 and 16 shift note entry down or up an octave, within three available octave positions: C1 to C4 in all. They are dark at the middle octave; pad 15 lights while you are an octave down, pad 16 while you are an octave up. Hold a note to sustain it. Live pad or MIDI notes temporarily take over the voice while the sequence continues keeping time.</p><h3>Choose a scale and root</h3><div class="gesture" role="img" aria-label="scale + pad"><svg class="key" aria-hidden="true"><use href="#y-scale"/></svg><span class="plus">+</span><svg class="key" aria-hidden="true"><use href="#y-pad"/></svg></div><p>Hold pad 14 and tap pad 1 for chromatic, 2 for minor, 3 for major, 4 for minor pentatonic, 5 for Phrygian or 6 for blues. Release pad 14 when finished.</p><p>Hold pad 14 and turn the knob to set the root from C at the far left to B at the far right. The pads display its letter; the top-right pad indicates a sharp. Changing the root moves every pattern with the key. Returning to the previous root restores the pitches.</p><p>Changing the scale also moves the notes you have programmed, in all 16 patterns, chords included. Each note keeps its place in the scale: the third note of minor becomes the third note of major. Between scales with different numbers of notes, each note moves to the same share of the way up the octave. It is a quick way to hear a melody in a new mood.</p><p>Going back to the scale the melody was written in restores it exactly, however many scales you tried in between. Once you edit a note, or after a restart, the notes as they are become the new original. Chromatic leaves notes as they are; leaving chromatic snaps them into the new scale.</p></section><section id="section-3"><h2>Build and record patterns</h2><h3>Place and edit steps</h3><div class="gesture" role="img" aria-label="pattern + pad"><svg class="key" aria-hidden="true"><use href="#y-pattern"/></svg><span class="plus">+</span><svg class="key" aria-hidden="true"><use href="#y-pad"/></svg></div><p>Select a note on NOTE, then open PATTERN. Tap an empty step to place it; tap an occupied step to clear it. Placement and clearing happen on release after a tap shorter than 0.4 seconds, provided the knob was not moved. Holding a step does not clear it.</p><p>While stopped, hold an occupied step to hear it. Keep holding and turn the knob to move its pitch through the selected scale. Turning to either end reaches the lowest or highest scale note between C1 and C4, wherever the knob was when you grabbed the step. In a poly pattern, the chord moves together. Pitch editing by this gesture is disabled during playback.</p><h3>Accent slide and tie</h3><div class="gesture" role="img" aria-label="accent + glide + pad"><svg class="key" aria-hidden="true"><use href="#y-accent"/></svg><span class="plus">+</span><svg class="key" aria-hidden="true"><use href="#y-glide"/></svg><span class="plus">+</span><svg class="key" aria-hidden="true"><use href="#y-pad"/></svg></div><table><thead><tr><th>Gesture on Pattern page</th><th>Result</th></tr></thead><tbody><tr><td>Hold ACCENT + tap a note step</td><td>Toggle accent for that note or chord.</td></tr><tr><td>Hold GLIDE + tap an active step</td><td>Toggle slide from that step toward the next.</td></tr><tr><td>Hold ACCENT + GLIDE + tap an empty step</td><td>Extend the preceding note with a tie. The previous step must contain a note or tie; the end wraps to the start.</td></tr><tr><td>Hold ACCENT + GLIDE + tap a tie</td><td>Remove the tie.</td></tr></tbody></table><p>While holding ACCENT, GLIDE or both, eligible steps pulse and steps with the selected property are solid. The playhead is hidden in this view. In the normal view, notes are lit, chords brighter, ties dimmer and the playhead brightest.</p><h3>Record a performance</h3><div class="gesture" role="img" aria-label="note"><svg class="key" aria-hidden="true"><use href="#y-note"/></svg></div><p>1. Open NOTE and double-tap NOTE quickly to arm recording. The Note LED blinks slowly when stopped.</p><p>2. Start playback. The Note LED blinks quickly during recording, and a playhead runs across the note pads, brighter on pad 1, so you can see where the bar starts.</p><p>3. Play the note pads. Notes are placed on the nearest step. Steps you do not play over keep their existing notes.</p><p>4. Hold a note beyond the halfway point of a following step to record a tie there. Continuing to hold can extend it over more steps.</p><p>5. Tap NOTE to stop recording, or open PATTERN or FUNCTION.</p><h3>Play and store chords</h3><div class="gesture" role="img" aria-label="function + pad"><svg class="key" aria-hidden="true"><use href="#y-function"/></svg><span class="plus">+</span><svg class="key" aria-hidden="true"><use href="#y-pad"/></svg></div><p>On FUNCTION, tap pad 16 to switch the current pattern between mono and poly. Dark means mono; bright means poly. In poly, press up to four note pads together, within about 40 ms, to select a chord. Place or record it just as you would a single note.</p><p>Poly is paraphonic: up to four oscillators share one filter and envelopes. Accent, slide and tie affect the chord together. Switching to mono plays the lowest stored chord note; the other notes remain stored. In live playing, a fifth note replaces the oldest voice.</p></section><section id="section-4"><h2>Organize patterns</h2><h3>Select a slot</h3><div class="gesture" role="img" aria-label="pattern + pad"><svg class="key" aria-hidden="true"><use href="#y-pattern"/></svg><span class="plus">+</span><svg class="key" aria-hidden="true"><use href="#y-pad"/></svg></div><p>Hold PATTERN and tap one of the 16 pads. Release PATTERN. While held, slots containing notes glow dimly, empty slots are off and the selected slot pulses. During playback a selected pattern begins after the current pattern ends.</p><h3>Build a chain</h3><div class="gesture" role="img" aria-label="pattern double-tap"><svg class="key" aria-hidden="true"><use href="#y-pattern"/></svg><span class="plus">×2</span></div><p>1. Double-tap PATTERN. The Pattern LED blinks and the pads show the slots.</p><p>2. Tap slots in playback order; you can let go of everything in between. Repeated taps are allowed: 1, 1, 1, 1, 2, 2, 3, 3 makes an eight-entry chain. Each slot flashes briefly as it is added.</p><p>3. Tap PATTERN, NOTE or FUNCTION to finish. The chain starts at the next pattern boundary if already playing, or when playback starts. Finishing with one slot plays that pattern on its own; finishing without tapping a slot changes nothing.</p><p>A chain holds up to 64 entries and loops. Each entry plays once at that pattern’s own length. Hold PATTERN to view the chain: its slots light and the playing slot pulses. While chaining, NOTE and PATTERN follow the playing pattern when no key is held. Hold PATTERN and select a single slot to end the chain. (Chains work the same way on the StepBro level.)</p><p>Under USB synchronization, the chain is aligned to the song position, with bar 1 as its starting point.</p><h3>Copy a pattern</h3><div class="gesture" role="img" aria-label="pattern + glide + pad"><svg class="key" aria-hidden="true"><use href="#y-pattern"/></svg><span class="plus">+</span><svg class="key" aria-hidden="true"><use href="#y-glide"/></svg><span class="plus">+</span><svg class="key" aria-hidden="true"><use href="#y-pad"/></svg></div><p>Hold PATTERN and GLIDE. Tap the source slot, then the destination slot. The source blinks after selection. Copying replaces the destination, includes recorded knob movements and ends an active chain. The copied pattern becomes the selected pattern.</p><h3>Erase a pattern</h3><div class="gesture" role="img" aria-label="pattern + function + pad"><svg class="key" aria-hidden="true"><use href="#y-pattern"/></svg><span class="plus">+</span><svg class="key" aria-hidden="true"><use href="#y-function"/></svg><span class="plus">+</span><svg class="key" aria-hidden="true"><use href="#y-pad"/></svg></div><p>Hold PATTERN and FUNCTION, then tap the slot to erase. Erasing removes notes, accents, slides, ties and knob recordings, and resets length, swing, transpose and mono/poly. There is no undo.</p><h3>Transpose length and swing</h3><div class="gesture" role="img" aria-label="pattern + knob"><svg class="key" aria-hidden="true"><use href="#y-pattern"/></svg><span class="plus">+</span><svg class="key" aria-hidden="true"><use href="#y-knob"/></svg></div><p>Hold PATTERN and turn the knob to transpose the current pattern by −12 to +12 semitones. Adjustment is relative to the knob’s starting position. A wider central stop helps you find zero; the pads show the amount.</p><p>For length, open FUNCTION, tap pad 12 and turn the knob to choose 1–16 steps. For swing, select pad 11 and turn the knob from 50% for straight timing to 75% for a stronger delayed offbeat.</p><h3>Generate a new pattern</h3><p>On FUNCTION, tap pad 9 to select Random. Turn the knob to set density from sparse to busy, then tap pad 9 again to replace the current slot with a generated 16-step pattern. Each further tap generates another. The current scale and key are used; poly patterns may include chords. Swing, transpose, mono/poly and knob recordings are retained. Copy a pattern first if you want to keep it.</p></section><section id="section-5"><h2>Shape the sound</h2><p>Tap FUNCTION, tap the parameter pad, then turn the knob. Cutoff is selected whenever you enter this page. Tap FUNCTION again, NOTE or PATTERN to leave. The knob returns to cutoff outside this page.</p><p>The filter is voiced like a TB-303. Resonance stays soft and broad through most of the knob and turns sharp and squelchy near the top; it rings through the whole range, from the low notes up to the very top when the envelope pushes the filter high, and is a little gentler when Cutoff is closed right down. With Resonance up, the sound gets louder as you close Cutoff, and turning Resonance up with Cutoff wide open makes it quieter. Env Mod lets each note open the filter by up to about two octaves; Decay sets how quickly it closes again.</p><table><thead><tr><th>Pad</th><th>Parameter</th><th>Operation</th></tr></thead><tbody><tr><td>1</td><td>Cutoff</td><td>Change filter brightness.</td></tr><tr><td>2</td><td>Resonance</td><td>Emphasize the filter cutoff region.</td></tr><tr><td>3</td><td>Env Mod</td><td>Set filter envelope modulation depth.</td></tr><tr><td>4</td><td>Decay</td><td>Adjust envelope decay.</td></tr><tr><td>5</td><td>Accent</td><td>Set accent amount for accented steps.</td></tr><tr><td>6</td><td>Delay Amount</td><td>Adjust the delay effect from off to long tails.</td></tr><tr><td>7</td><td>Delay Time</td><td>Choose 1/16, 1/8 triplet, 1/8, 1/4 triplet, dotted 1/8 or 1/4.</td></tr><tr><td>8</td><td>Distortion</td><td>Tap, then turn: Mix, the dry/wet amount. Hold pad 8 and turn: Drive. Hold pad 8 and tap pad 1 for soft clipping or pad 2 for sine shaping.</td></tr><tr><td>9</td><td>Random</td><td>Set density; tap again to generate a pattern.</td></tr><tr><td>10</td><td>Tune</td><td>Tune ±7 semitones; the middle is in tune.</td></tr><tr><td>11</td><td>Swing</td><td>Set the current pattern’s swing from 50% to 75%.</td></tr><tr><td>12</td><td>Length</td><td>Set the current pattern to 1–16 steps.</td></tr><tr><td>13</td><td>MIDI channel</td><td>Tap: only the current channel’s pad lights. Turn the knob to choose 1–16 (2 at first).</td></tr><tr><td>14</td><td>MIDI out</td><td>Tap to turn MIDI output on (pad bright) or off (pad dark, the default).</td></tr><tr><td>15</td><td>MIDI lead</td><td>Tap, then turn the knob: sends sequencer MIDI 0–15 ms early. The value scrolls in ms.</td></tr><tr><td>16</td><td>Mono or poly</td><td>Tap to toggle the current pattern’s voice mode: pad dark for mono (the default), bright for poly.</td></tr></tbody></table><h3>Knob pickup and value displays</h3><p>Continuous controls use pickup: the stored value changes only when the knob crosses it. A blinking pad shows the knob position until pickup. While turning, and briefly afterward, the pads show a value bar or a specialized display. Tune is centered when both middle pads light. Mix and Drive each have their own pickup; the Drive bar shows while you hold pad 8 and turn. Delay Time uses pads 1–6 for the six divisions. MIDI lead scrolls in milliseconds after selection or after you stop turning for about half a second.</p><p>Length, swing, transpose and mono/poly belong to each pattern. Sound parameters, key, scale and MIDI settings are shared. Pattern knob recordings can change the sound during playback.</p><p>Tap WAVE for sawtooth or square; hold WAVE + knob for volume on any page. Use your music software’s metronome; Yummy has none.</p></section><section id="section-6"><h2>Record knob movements</h2><p>Each pattern can store one value per step for eight parameters: Cutoff, Resonance, Env Mod, Decay, Accent, Delay Amount, Delay Time and Distortion Mix. These are FUNCTION pads 1–8. Drive is a sound setting and is not recorded.</p><h3>Record a parameter</h3><div class="gesture" role="img" aria-label="function + pad"><svg class="key" aria-hidden="true"><use href="#y-function"/></svg><span class="plus">+</span><svg class="key" aria-hidden="true"><use href="#y-pad"/></svg></div><p>1. Open FUNCTION and double-tap a pad from 1–8. Its fast blink indicates recording is armed.</p><p>2. Start the pattern if it is stopped. Turn the knob, crossing the pickup position if needed. Values are recorded on the steps you move over.</p><p>3. Tap that parameter pad again to stop recording. Selecting another parameter or leaving FUNCTION also stops recording.</p><p>Steps you do not move over retain their existing recorded values. During playback, recorded values glide between steps; Delay Time changes directly between its timing divisions.</p><h3>Take over during playback</h3><p>Turn the knob for the corresponding parameter to take over live until the pattern loops. Its recorded movement then resumes. This also applies to cutoff from the other pages.</p><h3>Clear one recording</h3><div class="gesture" role="img" aria-label="function + pad"><svg class="key" aria-hidden="true"><use href="#y-function"/></svg><span class="plus">+</span><svg class="key" aria-hidden="true"><use href="#y-pad"/></svg></div><p>While on FUNCTION, hold the FUNCTION key and tap the parameter pad from 1–8. This removes that parameter’s recording from the current pattern. It does not erase the notes or recordings for other parameters.</p><h3>Use recordings across patterns</h3><p>Recorded parameters glow faintly in the Function page overview. Copying a pattern includes its recordings; erasing the pattern removes them. In a chain, each slot plays its own recording. A recording gesture made across changing slots is split among those patterns.</p><h3>Record the sound or MIDI</h3><p>To capture the full result, including internal effects and recorded parameter movements, record the USB audio into your music application.</p><p>With MIDI output enabled, live knob changes are sent as MIDI Control Change messages. Values played back from the pattern’s internal knob recordings are not transmitted as CC automation. Record USB audio if you need that internal automation in the finished performance.</p></section><section id="section-7"><h2>USB MIDI and synchronization</h2><h3>Synchronize with a host</h3><p>The firmware receives USB MIDI Clock, Start, Continue, Stop and Song Position. The following workflow follows the supplied Ableton instructions; host menu labels may differ by version.</p><p>1. In Ableton’s MIDI settings, enable Sync for the Step Mother output.</p><p>2. Switch the panel to Yummy. The Play LED glows dimly while Yummy waits for the host.</p><p>3. Start the host transport. Yummy follows tempo and song position, including starts partway through a song. Stop the host transport to stop Yummy.</p><p>4. Use Yummy’s PLAY key to mute or unmute the pattern; the change lands on the beat. The Play LED blinks while muted.</p><p>PLAY never starts Yummy on its own. Pressed while the host is stopped, it decides whether Yummy starts muted; the Play LED then blinks dimly.</p><h3>Record sequencer MIDI</h3><p>1. MIDI output starts out off: FUNCTION pad 14 is dark while it is off and bright when on. Tap pad 14 to turn it on (or off again). The choice is saved.</p><p>2. Set a MIDI track’s input to Step Mother and Yummy’s MIDI channel (2 at first), then arm recording.</p><p>3. Keep that track’s MIDI from going back to the board: set its monitoring to Off, or its output to anything other than Step Mother. Otherwise Yummy hears its own notes again and repeats them.</p><p>All chord notes are transmitted. Accent uses velocity 127; slides are represented by overlapping notes. To change the channel, tap FUNCTION-page pad 13: only the current channel’s pad lights. Turn the knob to choose from 1–16. The initial channel is 2; StepBro uses channel 1. Incoming notes and CCs must use Yummy’s channel. Turning MIDI output off, or changing the channel, ends any notes still sounding.</p><h3>Adjust MIDI recording timing</h3><div class="gesture" role="img" aria-label="pad + knob"><svg class="key" aria-hidden="true"><use href="#y-pad"/></svg><span class="plus">+</span><svg class="key" aria-hidden="true"><use href="#y-knob"/></svg></div><p>On FUNCTION, tap pad 15 and turn the knob to set MIDI lead. Positions run from 0 to 15 ms in 1 ms steps: pad 1 means 0 ms, pad 9 means 8 ms, and pad 16 means 15 ms. Default lead is 8 ms. The effective lead is limited to three quarters of a sixteenth note.</p><p>Record a short test and adjust the lead to reduce late MIDI placement. The value scrolls in milliseconds when you tap pad 15 and after you stop turning. This moves transmitted sequencer MIDI earlier without advancing the audio. The first note after starting cannot be sent early, and very late edits may be sent at the step itself.</p><p>Yummy separately compensates for approximately 2.7 ms of its own audio buffering during synchronized playback. Host and monitoring latency still depend on your setup; adjust track timing only after checking a recording.</p><h3>Mute Yummy while performing</h3><p>From the StepBro level, hold StepBro’s Shift and Mute (GLIDE and ACCENT), then tap pad 2 to mute Yummy’s MIDI notes or pad 3 to mute its audio. Tap again to unmute; muted pads flash. Notes already sounding get their note-off when MIDI is muted, so nothing hangs in your software. The audio mute fades out over a few milliseconds, echoes included. Yummy’s sequencer keeps running underneath, so unmuting comes back in time. Muting audio but not MIDI lets Yummy’s patterns play an instrument in your software instead. These mutes are not saved.</p></section><section id="section-8"><h2>Saving and troubleshooting</h2><h3>Save your work</h3><p>Saving is automatic, approximately 1.5 seconds after the last stored change, once Yummy is stopped, the host transport is stopped (StepBro is saved in the same save) and all keys are released. The Play LED blinks quickly while a save runs. Changes made during playback are saved after stopping. Allow a few seconds after stopping before removing power.</p><p>Patterns, chains, recorded knob movements, sound settings, key, scale and MIDI settings are restored at power-up. There is no manual save gesture. Mutes made with Shift + Mute on the StepBro level are not saved.</p><h3>Update the firmware</h3><div class="gesture" role="img" aria-label="glide + function"><svg class="key" aria-hidden="true"><use href="#y-glide"/></svg><span class="plus">+</span><svg class="key" aria-hidden="true"><use href="#y-function"/></svg></div><p>Yummy and StepBro are one firmware, so one update covers both and keeps your saved work. Use StepDaddy, the updater for macOS and Windows: open it and follow its instructions. It works out which board you have, or asks: the Step Mother 1 has a micro-USB socket, the Step Mother 2 a USB-C socket.</p><p>When StepDaddy asks, disconnect USB, then hold GLIDE + FUNCTION while reconnecting and keep them down for half a second. This is checked only at power-up. On the Step Mother 2 (RP2040), the board then appears as a drive called RPI-RP2 and StepDaddy copies the firmware onto it. The Step Mother 1 (Teensy) can usually be restarted into install mode by StepDaddy with no keys.</p><p>Without StepDaddy: on the Step Mother 2, copy the <code>.uf2</code> file onto RPI-RP2 yourself; on the Step Mother 1, use PJRC’s Teensy Loader with the <code>.hex</code> file.</p><h3>Resolve common problems</h3><table><thead><tr><th>Symptom</th><th>Check</th></tr></thead><tbody><tr><td>No sound</td><td>Select Step Mother as the audio input, enable monitoring and use 48 kHz. Raise WAVE + knob volume and check cutoff. Try a NOTE pad. Check that Yummy’s audio is not muted (StepBro level, Shift + Mute, pad 3 flashing).</td></tr><tr><td>Yummy does not play</td><td>Yummy plays only with the host: enable Sync to the board and start the transport. If the Play LED blinks, Yummy is muted: press PLAY.</td></tr><tr><td>Knob seems inactive</td><td>Sweep through the saved value for pickup. Check the selected Function parameter and any held modifier.</td></tr><tr><td>Unexpected pitches or chords</td><td>Check the scale (notes follow scale changes), root, pattern transpose, Tune and mono/poly mode.</td></tr><tr><td>Notes repeat, stick or double</td><td>A MIDI track is sending Yummy’s notes back to the board. Set its monitoring to Off or change its output.</td></tr><tr><td>Software receives no Yummy notes</td><td>Check that MIDI output is on (FUNCTION pad 14 bright; it starts off), the channel (2 at first) and the StepBro-level MIDI mute (Shift + Mute, pad 2).</td></tr><tr><td>Changes lost after power off</td><td>Stop playback, release every key and allow a few seconds before disconnecting.</td></tr><tr><td>All LEDs flash briefly</td><td>Firmware reports an audio underrun or missed USB audio packet. Check the USB connection and host audio configuration.</td></tr><tr><td>All LEDs blink slowly</td><td>The firmware reports that the previous run crashed. Note what you were doing when it happened, for support. On the Step Mother 2 the USB device name shows the crash reason.</td></tr></tbody></table><p>If audio slowly drifts relative to another interface on macOS, the supplied instructions recommend an Aggregate Device with your listening interface as Clock Source and Drift Correction enabled for Step Mother.</p></section><section id="section-9"><h2>MIDI reference</h2><h3>MIDI Control Change messages</h3><p>Receive these messages on the selected channel. With MIDI output enabled, supported panel changes use the same assignments. Parameter values generally use the MIDI 0–127 range.</p><table><thead><tr><th>CC</th><th>Parameter</th><th>CC</th><th>Parameter</th></tr></thead><tbody><tr><td>7</td><td>Volume</td><td>74</td><td>Cutoff</td></tr><tr><td>12</td><td>Delay Time</td><td>75</td><td>Decay</td></tr><tr><td>13</td><td>Delay Amount</td><td>76</td><td>Env Mod</td></tr><tr><td>14</td><td>Distortion type</td><td>77</td><td>Accent</td></tr><tr><td>71</td><td>Resonance</td><td>78</td><td>Distortion Mix</td></tr><tr><td>94</td><td>Tune</td><td></td><td></td></tr></tbody></table><p>Distortion type: values 0–63 select soft clipping; 64–127 select sine shaping. Drive has no CC. Delay Time selects the six synchronized divisions. FUNCTION + PLAY sends a diagnostic report on channel 16, a short MIDI note for CPU load plus a set of CCs, including whether saving works and, if not, what is holding it back; FUNCTION + ACCENT + PLAY resets its peak values. It is not a musical performance control.</p><h3>Firmware capacities</h3><table><thead><tr><th>Feature</th><th>Capacity</th></tr></thead><tbody><tr><td>Pattern memory</td><td>16 patterns with 1–16 steps each</td></tr><tr><td>Pattern chain</td><td>Up to 64 entries, including repeats</td></tr><tr><td>Poly voice</td><td>Up to 4 notes through shared filter and envelopes</td></tr><tr><td>Parameter recording</td><td>8 parameters, one value per step per pattern</td></tr><tr><td>Pattern transpose</td><td>−12 to +12 semitones</td></tr><tr><td>Swing</td><td>50–75% per pattern</td></tr><tr><td>USB audio</td><td>48 kHz, 16-bit, two channels from device to computer</td></tr><tr><td>USB MIDI</td><td>Notes, supported CCs and host clock and transport; channel 2 at first</td></tr></tbody></table></section><footer><span>Yummy Gummy Synthesizer / Layer 2</span><span>Firmware 1.2.0 · Updated 14 November 2026</span></footer></main></body></html>

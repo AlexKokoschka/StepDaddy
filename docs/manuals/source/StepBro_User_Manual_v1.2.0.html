@@ -1,0 +1,286 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>StepBro / Layer 1 user manual</title><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}
+
+/* Layout: a single reading column; every instruction is a row of physical key
+   glyphs on the left and plain language on the right. Palette is taken from
+   the instrument itself — cream caps, candy dots. */
+:root{
+  --paper:#ffffff;
+  --panel:#f7f4ed;
+  --ink:#231f1c;
+  --ink-soft:#5f574e;
+  --rule:#ddd5c5;
+  --cap:#fffdf7;
+  --cap-edge:#c9bfa9;
+  --pink:#e8628c;
+  --yellow:#faef19;
+  --blue:#56c2ef;
+  --green:#7cc242;
+  --coal:#080605;
+  --accent:var(--pink);
+  --shadow:0 1px 0 rgba(35,31,28,.06), 0 6px 18px rgba(35,31,28,.07);
+  --f-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --f-body:"Source Sans 3",system-ui,-apple-system,Segoe UI,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#1a1715;
+    --panel:#241f1c;
+    --ink:#f3ece0;
+    --ink-soft:#a79a8a;
+    --rule:#3a322c;
+    --cap-edge:#5a4e44;
+    --shadow:0 1px 0 rgba(0,0,0,.4), 0 8px 22px rgba(0,0,0,.35);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#1a1715;
+  --panel:#241f1c;
+  --ink:#f3ece0;
+  --ink-soft:#a79a8a;
+  --rule:#3a322c;
+  --cap-edge:#5a4e44;
+  --shadow:0 1px 0 rgba(0,0,0,.4), 0 8px 22px rgba(0,0,0,.35);
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--f-body);
+  font-size:17px;
+  line-height:1.6;
+  padding-inline:20px;
+  padding-block:0;
+}
+.wrap{max-width:860px;margin:0 auto;padding-block:48px 72px}
+
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0}
+h1{font-weight:900;font-size:clamp(2.6rem,9vw,4.4rem);line-height:.95;letter-spacing:-.03em}
+h2{font-weight:800;font-size:clamp(1.5rem,4.4vw,2rem);letter-spacing:-.02em;line-height:1.1}
+h3{font-weight:700;font-size:1.06rem;letter-spacing:-.01em}
+p{margin:0}
+
+.eyebrow{
+  font-family:var(--f-display);font-weight:700;font-size:.72rem;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft);
+}
+
+/* ---------- masthead ---------- */
+.mast{display:flex;flex-direction:column;gap:18px;padding-bottom:36px;border-bottom:3px solid var(--ink)}
+.mast .sub{font-size:1.18rem;color:var(--ink-soft);max-width:34em}
+.dotline{display:flex;gap:7px;align-items:center}
+.dotline i{width:13px;height:13px;border-radius:50%;display:block}
+
+section{padding-block:44px;border-bottom:1px solid var(--rule)}
+section:last-of-type{border-bottom:0}
+.lede{color:var(--ink-soft);max-width:36em;margin-top:12px}
+
+/* ---------- contents ----------
+   Section numbers come from a counter rather than being typed in, so adding,
+   removing or reordering a section renumbers both the headings and this list.
+   The two counters run over the same sequence, so they stay in step. */
+.wrap{counter-reset:sect}
+section > h2::before{
+  counter-increment:sect;
+  content:counter(sect) ".\00a0";
+  color:var(--accent);
+}
+.toc{padding-block:38px;border-bottom:1px solid var(--rule)}
+.toc-title{font-size:1.05rem;font-weight:700;letter-spacing:.01em;margin-bottom:14px}
+.toc ol{counter-reset:toc;list-style:none;margin:0;padding:0;
+  columns:2;column-gap:38px}
+.toc li{counter-increment:toc;break-inside:avoid;margin-bottom:7px}
+.toc a{
+  display:flex;gap:9px;align-items:baseline;text-decoration:none;color:var(--ink);
+  border-bottom:1px solid transparent;padding-block:1px;
+}
+.toc a::before{content:counter(toc) ".";color:var(--accent);
+  font-family:var(--f-display);font-weight:700;font-size:.86rem;min-width:1.15em}
+.toc a:hover{color:var(--accent)}
+@media (max-width:620px){ .toc ol{columns:1} }
+
+/* ---------- key glyphs ---------- */
+.key{width:44px;height:44px;flex:0 0 auto;color:var(--cap-edge);display:block}
+.key.sm{width:34px;height:34px}
+
+/* the keyboard map */
+.keymap{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:14px;margin-top:26px}
+.keycard{
+  background:var(--panel);border:1px solid var(--rule);border-radius:12px;
+  padding:16px;display:flex;flex-direction:column;align-items:flex-start;gap:10px;
+  box-shadow:var(--shadow);
+}
+.keycard .nm{font-family:var(--f-display);font-weight:800;font-size:1.02rem}
+.keycard .ds{font-size:.9rem;color:var(--ink-soft);line-height:1.45}
+
+/* ---------- combo rows ---------- */
+.rows{display:flex;flex-direction:column;gap:2px;margin-top:22px}
+.row{
+  display:grid;grid-template-columns:minmax(0,164px) minmax(0,1fr);
+  gap:18px;align-items:start;padding:14px 0;border-top:1px solid var(--rule);
+}
+.row:first-child{border-top:0}
+.combo{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
+.plus{font-family:var(--f-display);font-weight:700;color:var(--ink-soft);font-size:1rem;line-height:1}
+.hold{
+  font-family:var(--f-display);font-weight:700;font-size:.6rem;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink-soft);
+  border:1px solid var(--rule);border-radius:999px;padding:3px 7px;line-height:1;white-space:nowrap;
+}
+.pad{
+  width:34px;height:34px;border-radius:8px;background:var(--panel);
+  border:1px solid var(--cap-edge);display:grid;place-items:center;
+  font-family:var(--f-mono);font-size:.68rem;color:var(--ink-soft);flex:0 0 auto;
+}
+.knob{
+  width:34px;height:34px;border-radius:50%;background:var(--panel);
+  border:2px solid var(--cap-edge);position:relative;flex:0 0 auto;
+}
+.knob::after{content:"";position:absolute;left:50%;top:4px;width:2px;height:10px;
+  background:var(--ink-soft);transform:translateX(-50%) rotate(28deg);transform-origin:50% 120%;border-radius:2px}
+.what{min-width:0}
+.what b{font-weight:600;display:block;font-size:1.02rem}
+.what span{display:block;color:var(--ink-soft);font-size:.94rem;line-height:1.5;margin-top:3px}
+
+/* ---------- light language ---------- */
+.lights{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-top:24px}
+.lite{display:flex;gap:13px;align-items:flex-start;background:var(--panel);
+  border:1px solid var(--rule);border-radius:11px;padding:14px}
+.lamp{width:17px;height:17px;border-radius:50%;flex:0 0 auto;margin-top:3px;background:var(--pink)}
+.lamp.full{box-shadow:0 0 0 4px rgba(232,98,140,.22)}
+.lamp.dim{opacity:.34}
+.lamp.off{background:transparent;border:2px solid var(--rule)}
+.lamp.dip{animation:dip 300ms steps(1,end) infinite}
+.lamp.flash{animation:flash 400ms steps(1,end) infinite}
+.lamp.slow{animation:flash 1000ms steps(1,end) infinite}
+.lamp.pulse{animation:flash 500ms steps(1,end) infinite}
+@keyframes dip{0%,73%{opacity:1}74%,100%{opacity:.08}}
+@keyframes flash{0%,49%{opacity:1}50%,100%{opacity:.12}}
+@media (prefers-reduced-motion:reduce){
+  .lamp.dip,.lamp.flash,.lamp.slow,.lamp.pulse{animation:none;opacity:.6}
+}
+.lite b{font-weight:600;display:block}
+.lite span{display:block;color:var(--ink-soft);font-size:.92rem;line-height:1.45;margin-top:2px}
+
+/* ---------- streams ---------- */
+.streams{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-top:24px}
+.stream{background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:18px;
+  border-top:5px solid var(--accent);box-shadow:var(--shadow)}
+.stream.b{border-top-color:var(--blue)}
+.stream.c{border-top-color:var(--green)}
+.stream .tag{font-family:var(--f-display);font-weight:900;font-size:1.5rem;letter-spacing:-.02em}
+.stream dl{margin:12px 0 0;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:.93rem}
+.stream dt{color:var(--ink-soft)}
+.stream dd{margin:0;font-family:var(--f-mono);font-size:.86rem}
+
+/* ---------- steps ---------- */
+ol.steps{margin:24px 0 0;padding:0;list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:14px}
+ol.steps li{counter-increment:s;display:grid;grid-template-columns:auto 1fr;gap:15px;align-items:start}
+ol.steps li::before{
+  content:counter(s);font-family:var(--f-display);font-weight:900;font-size:.82rem;
+  width:27px;height:27px;border-radius:50%;background:var(--ink);color:var(--paper);
+  display:grid;place-items:center;margin-top:1px
+}
+code{font-family:var(--f-mono);font-size:.88em;background:var(--panel);
+  border:1px solid var(--rule);border-radius:5px;padding:1px 5px}
+
+.note{
+  margin-top:24px;background:var(--panel);border:1px solid var(--rule);
+  border-left:5px solid var(--accent);border-radius:0 11px 11px 0;padding:17px 19px;
+}
+.note b{font-family:var(--f-display);font-weight:800;display:block;margin-bottom:5px;font-size:.98rem}
+.note p{color:var(--ink-soft);font-size:.96rem}
+
+footer{padding-block:34px;color:var(--ink-soft);font-size:.9rem;display:flex;
+  justify-content:space-between;gap:14px;flex-wrap:wrap;border-top:3px solid var(--ink)}
+
+@media (max-width:620px){
+  body{font-size:16px}
+  .row{grid-template-columns:1fr;gap:11px}
+  .wrap{padding-block:36px 56px}
+}
+
+/* ---------- print ----------
+   Paper cannot blink, so the four moving light states are redrawn as a row of
+   dots showing their on/off pattern; the caption beside each one still carries
+   the speed, which is the part a strip of dots can't show. */
+.lite .strip,.printonly{display:none}
+@media print{
+  :root{
+    --paper:#fff; --panel:#f7f4ed; --ink:#231f1c; --ink-soft:#4a443d;
+    --rule:#cfc6b4; --cap-edge:#b4a991; --shadow:none;
+    color-scheme:light;
+  }
+  @page{margin:16mm 14mm}
+  body{
+    background:#fff;font-size:10.5pt;padding-inline:0;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact;
+  }
+  .wrap{max-width:none;padding-block:0}
+  h1{font-size:40pt}
+  h2{font-size:17pt}
+  h3{font-size:11pt}
+  .mast{padding-bottom:18px}
+  .mast .sub{font-size:12pt}
+  section{padding-block:0;border-bottom:0}
+  .keycard,.lite,.stream,.note,.row,ol.steps li,.keymap{break-inside:avoid}
+  h1,h2{break-after:avoid}
+  /* One section per printed page. Erasing is the deliberate exception: it is
+     short and belongs beside Muting, so it runs on rather than starting a
+     page of its own. The masthead and contents own page 1. */
+  section{break-before:page}
+  #erasing{break-before:auto;padding-top:30px}
+  .toc{border-bottom:0;padding-block:26px 0}
+  .toc ol{columns:1}
+  .toc a{color:var(--ink);border-bottom:1px dotted var(--rule);padding-bottom:3px}
+  .toc li{margin-bottom:10px}
+  /* On paper a link is unclickable, so the page number has to be printed. */
+  .toc a::after{
+    content:attr(data-page);margin-left:auto;padding-left:12px;
+    color:var(--ink-soft);font-variant-numeric:tabular-nums;
+  }
+  .keycard,.lite,.stream,.note{box-shadow:none}
+  /* animation cannot survive a PDF: swap each moving lamp for its pattern */
+  .lamp.dip,.lamp.flash,.lamp.slow,.lamp.pulse{display:none}
+  .lite .strip{display:flex;gap:3px;flex:0 0 auto;margin-top:5px;align-items:center}
+  .lite .strip i{width:8px;height:8px;border-radius:50%;background:var(--pink);display:block;flex:0 0 auto}
+  .lite .strip i.off{background:transparent;border:1.5px solid #a89d89}
+  .printonly{display:block;color:var(--ink-soft);font-size:9.5pt;margin-top:14px;font-style:italic}
+}
+ .namedkey{display:inline-flex;flex-direction:column;align-items:center;gap:3px}.namedkey small{font-size:10px;line-height:1.2;color:var(--ink-soft)}.combo{flex-wrap:wrap}.what span{display:block}table{width:100%;border-collapse:collapse;margin:22px 0;font-size:.94em}th,td{padding:10px 12px;border:1px solid var(--rule);text-align:left;vertical-align:top}th{background:var(--panel)}.review{font-size:.9rem;color:var(--ink-soft)}@media print{.toc a::after{content:none}section{break-before:auto; padding-top:22px}#erasing{padding-top:22px}.row{break-inside:avoid}table{font-size:9pt}tr{break-inside:avoid}.mast{break-after:avoid}} </style></head><body><svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+  <symbol id="cap" viewBox="0 0 43 43">
+    <rect x="2.83" y="2.83" width="36.85" height="36.85" rx="2.6"
+          fill="#fffdf7" stroke="currentColor" stroke-width="1"/>
+  </symbol>
+  <symbol id="k-note" viewBox="0 0 43 43">
+    <use href="#cap"/><circle cx="21.5" cy="21.5" r="5.87" fill="#e8628c"/>
+  </symbol>
+  <symbol id="k-pattern" viewBox="0 0 43 43">
+    <use href="#cap"/>
+    <circle cx="12.26" cy="21.5" r="4.87" fill="#e8628c"/>
+    <circle cx="30.18" cy="21.5" r="4.87" fill="#e8628c"/>
+  </symbol>
+  <symbol id="k-mute" viewBox="0 0 43 43">
+    <use href="#cap"/><circle cx="21.5" cy="21.5" r="5.87" fill="#56c2ef"/>
+  </symbol>
+  <symbol id="k-clear" viewBox="0 0 43 43">
+    <use href="#cap"/><circle cx="21.5" cy="21.5" r="5.87" fill="#080605"/>
+  </symbol>
+  <symbol id="k-play" viewBox="0 0 43 43">
+    <use href="#cap"/><circle cx="21.5" cy="21.5" r="5.87" fill="#7cc242"/>
+  </symbol>
+  <symbol id="k-bank" viewBox="0 0 43 43">
+    <use href="#cap"/>
+    <circle cx="21.22" cy="14.30" r="4.87" fill="#faef19"/>
+    <circle cx="21.22" cy="28.22" r="4.87" fill="#e8628c"/>
+  </symbol>
+  <symbol id="k-shift" viewBox="0 0 43 43">
+    <use href="#cap"/>
+    <circle cx="27.85" cy="21.388" r="6" fill="#70ffff"/>
+    <circle cx="21.26" cy="21.26" r="5.872" fill="#fbee2f"/>
+    <circle cx="14.925" cy="21.388" r="6" fill="#e8628c"/>
+  </symbol>
+</defs></svg><main class="wrap"><header class="mast"><div class="dotline"><i style="background:#e8628c"></i><i style="background:#faef19"></i><i style="background:#56c2ef"></i><i style="background:#7cc242"></i></div><h1>StepBro / Layer 1</h1></header><nav class="toc" aria-label="Contents"><h2 class="toc-title">Contents</h2><ol><li><a href="#start">Connect and make your first pattern</a></li><li><a href="#controls">The panel and the two grid modes</a></li><li><a href="#streams">StepBro and Yummy Gummy Synthesizer: two levels</a></li><li><a href="#steps">Edit hits velocity swing and note length</a></li><li><a href="#record">Record notes and rolls</a></li><li><a href="#banks">One bar or two bars</a></li><li><a href="#slots">Select copy and erase pattern slots</a></li><li><a href="#chains">Chain patterns</a></li><li><a href="#repeat">Perform with density and the loop window</a></li><li><a href="#mutes">Mute and erase sounds</a></li><li><a href="#timing">MIDI channels transport and timing</a></li><li><a href="#save">Saving lights and troubleshooting</a></li><li><a href="#update">Firmware updates</a></li></ol></nav><section id="start"><h2>Connect and make your first pattern</h2><p>Layer 1 sends MIDI to instruments in your computer. Connect the device by USB, route StepBro’s MIDI (Midi Channel 1) to a drum kit or synthesizer, and send MIDI clock and transport from your music software to the device. StepBro / Layer 1 comes with the Yummy Gummy Synthesizer on Layer 2, which can be accessed by pressing SHIFT + BANK + PLAY. Both Layers run at the same time. Layer 2 has its own manual, please check it for more details.</p><p>The same name is used for the MIDI port and for Yummy’s audio input, whichever level the panel shows. Select the port that matches your board.</p><ol class="steps"><li>Connect a USB data cable. In your music software, enable MIDI input from Step Mother and enable MIDI clock or Sync output to the same device.</li><li>Create an instrument track receiving on Midi Channel 1. Choose a drum kit or synthesizer and enable its input monitoring.</li><li>Tap Note, then tap a pad. It should play a sound and select that sound for step editing.</li><li>Tap Pattern briefly. Tap pads 1, 5, 9 and 13 to place hits. Tap an active step again to remove it.</li><li>Start your software’s transport. StepBro follows its clock. Use StepBro’s Play key to stop StepBro while the software keeps running; press Play again and StepBro comes back in on the next beat.</li><li>Stop the software, then allow a few seconds for saving before unplugging. The Play LED blinks quickly while a save runs.</li></ol><p>StepBro has no internal tempo. Its sequencer needs incoming MIDI clock and a running host transport. You can audition notes while stopped.</p></section><section id="controls"><h2>The panel and the two grid modes</h2><table><thead><tr><th>Key</th><th>Use</th></tr></thead><tbody><tr><td>Note</td><td>Tap for sounds; double-tap to arm recording. Hold for the sound overview or as a modifier.</td></tr><tr><td>Pattern</td><td>Tap for steps; hold for slots; double-tap to chain multiple patterns.</td></tr><tr><td>Shift</td><td>Modifier for rolls, swing, the loop window, copying, mutes and the MIDI channel.</td></tr><tr><td>Mute</td><td>Mute sounds; with Shift, mute StepBro (pad 1), Yummy Midi Out (pad 2) or Yummy Audio (pad 3). Hold with the knob for note length.</td></tr><tr><td>Bank</td><td>Switch the visible half of the sounds or steps.</td></tr><tr><td>Clear</td><td>Erase with another key or pad. A plain tap does not erase.</td></tr><tr><td>Play</td><td>Stop StepBro, or bring it back in on the next beat, while the host runs; hold with the knob while the host is stopped for MIDI Lead (MIDI delay adjustment).</td></tr><tr><td>Knob</td><td>On its own: in Note mode, the selected sound’s velocity; in Pattern mode, density. With a key or pad held: the value that combination sets.</td></tr></tbody></table><p>Pads are numbered 1–16, left to right and top to bottom. “Hold X + tap Y” means keep X down while tapping Y. The Yummy manual names four of the same keys differently: Shift is Glide, Mute is Accent, Bank is Wave and Clear is Function. There are semantic overlaps between the names so it should become fairly intuitive which button does what.</p><div class="row"><div class="combo"><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-note"/></svg><small>Note</small></span></div><div class="what"><b>Note mode — pads are sounds</b><span>Each pad selects and plays one sound. Bank switches between sounds 1–16 and 17–32. Hold Note to see which sounds contain programmed hits.</span></div></div><div class="row"><div class="combo"><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-pattern"/></svg><small>Pattern</small></span></div><div class="what"><b>Pattern mode — pads are steps</b><span>The grid shows 16 steps for the selected sound. Bank switches between steps 1–16 and 17–32. Each step is a sixteenth note.</span></div></div><p>A quick Pattern tap from Note mode opens step editing. A longer hold opens slots after about 0.15 seconds and returns to Note mode when released.</p></section><section id="streams"><h2>StepBro and Yummy Gummy Synthesizer: two levels</h2><p>The panel shows one of two levels at a time: StepBro, or the Yummy Gummy Synthesizer. Both keep playing whichever level you see; switching only changes what the keys and pads control.</p><div class="row"><div class="combo"><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-shift"/></svg><small>Shift</small></span><span class="plus">+</span><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-bank"/></svg><small>Bank</small></span><span class="plus">+</span><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-play"/></svg><small>Play</small></span></div><div class="what"><b>Switch between StepBro and Yummy</b><span>Hold all three together, in any order. Release them all before playing on. The Bank LED blinks slowly while the Yummy level is shown. The switch never starts, stops or mutes either engine.</span></div></div><p>StepBro has 16 pattern slots, 32 sounds per pattern, on one MIDI channel (channel 1 at first). Power-up shows the StepBro level. Yummy plays its own sound through the board’s USB audio and uses MIDI channel 2. MIDI channels can be changed for each of the Layers (see the corresponding section below).</p><p>From the StepBro level, Shift + Mute also mutes Yummy’s MIDI and audio; see Mute and erase sounds.</p></section><section id="steps"><h2>Edit hits velocity swing and note length</h2><div class="row"><div class="combo"><span class="pad">pad</span></div><div class="what"><b>Place or remove a hit</b><span>In Pattern mode, tap a pad. The toggle happens on release. A new hit uses velocity 100. Holding without moving the knob still toggles on release; use hold-and-turn to edit velocity.</span></div></div><div class="row"><div class="combo"><span class="pad">pad</span><span class="plus">+</span><span class="namedkey"><span class="knob"></span><small>Knob</small></span></div><div class="what"><b>Set step velocity</b><span>Hold a step in Pattern mode and turn the knob: 1–127. An empty step is created at that velocity. Releasing after turning leaves the hit on. You can hold several steps to adjust them together.</span></div></div><div class="row"><div class="combo"><span class="namedkey"><span class="knob"></span><small>Knob</small></span></div><div class="what"><b>Set a sound’s velocity, programmed hits included</b><span>In Note mode, with nothing held, turn the knob. It sets the selected sound’s velocity for auditioning and live recording, and scales the velocities already programmed for that sound, so soft and accented hits keep their difference. The knob picks up: nothing changes until it passes the current velocity, so a knob left elsewhere never jumps it. Turning back to where you started restores the hits as they were. The selected pad’s brightness shows the velocity.</span></div></div><div class="row"><div class="combo"><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-note"/></svg><small>Note</small></span><span class="plus">+</span><span class="pad">pad</span><span class="plus">+</span><span class="namedkey"><span class="knob"></span><small>Knob</small></span></div><div class="what"><b>Set live playing velocity</b><span>In Note mode, hold the sound pad and turn the knob. Note does not need to remain held. This sets that sound’s audition and live-record velocity, not its already programmed steps. Turning is silent; press the pad again to hear the result.</span></div></div><div class="row"><div class="combo"><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-shift"/></svg><small>Shift</small></span><span class="plus">+</span><span class="namedkey"><span class="knob"></span><small>Knob</small></span></div><div class="what"><b>Set swing</b><span>Hold Shift with no pads held and turn the knob. The current pattern ranges from 50% straight timing to 75% shuffle. Swing is stored with each pattern.</span></div></div><div class="row"><div class="combo"><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-mute"/></svg><small>Mute</small></span><span class="plus">+</span><span class="namedkey"><span class="knob"></span><small>Knob</small></span></div><div class="what"><b>Set note length</b><span>Hold Mute with no pads held and turn the knob. Note length runs from 5% to 100% of a step (default 80%) and is stored with each pattern; this matters most when StepBro plays a synth line. It changes only once the knob moves, so pressing Mute alone never alters it. When no tempo has been measured yet, auditioned notes last 150 ms.</span></div></div><p>Knob controls wait until you move the knob after holding the key or pad. They then use its absolute position. Two exceptions: the knob on its own in Note mode picks up at the current velocity, and the knob during a roll moves on from the current velocity. Sound shaping belongs to the receiving instrument.</p></section><section id="record"><h2>Record notes and rolls</h2><div class="row"><div class="combo"><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-note"/></svg><small>Note</small></span></div><div class="what"><b>Double-tap to arm recording</b><span>Make two clean, quick taps of Note. The Note LED blinks while armed. With the host running and StepBro locally playing, note pads are recorded at the nearest step, and a playhead runs across the dark pads, brighter on pad 1 at the start of each bar, so you can see when to come in. Existing hits elsewhere remain unchanged.</span></div></div><p>Tap Note once to disarm. Entering Pattern mode also disarms. Using Note as a held modifier does not count as a recording tap.</p><div class="row"><div class="combo"><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-shift"/></svg><small>Shift</small></span><span class="plus">+</span><span class="pad">pad</span></div><div class="what"><b>Play a sixteenth-note roll</b><span>In Note mode, hold Shift, then a sound pad. The first hit sounds immediately; subsequent hits follow straight sixteenth notes while playing, even if the pattern has swing. Release the pad to stop. Multiple pads can roll together.</span></div></div><p>With recording armed, the roll is recorded. Without recording armed, Shift + pad is a performance roll and writes nothing.</p><div class="row"><div class="combo"><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-shift"/></svg><small>Shift</small></span><span class="plus">+</span><span class="pad">pad</span><span class="plus">+</span><span class="namedkey"><span class="knob"></span><small>Knob</small></span></div><div class="what"><b>Ride the roll’s velocity</b><span>While a pad rolls, turn the knob to make the repeats softer or harder. It moves on from the current velocity with no jump, and turning to either end reaches 1 or 127 wherever the knob started. A recorded roll keeps the velocities you played. Swing is not changed while a pad rolls.</span></div></div><div class="row"><div class="combo"><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-note"/></svg><small>Note</small></span><span class="plus">+</span><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-shift"/></svg><small>Shift</small></span><span class="plus">+</span><span class="pad">pad</span></div><div class="what"><b>Record a roll without arming</b><span>Hold Note and Shift, then a sound pad. While the sequencer plays, each roll hit is added to its step. From Pattern mode, releasing Note returns to step editing.</span></div></div><p>Rolls can sound while stopped, using the last measured step duration or a 125 ms fallback before any tempo is measured. Nothing is recorded while stopped.</p></section><section id="banks"><h2>One bar or two bars</h2><p>Each pattern stores 32 sounds over 32 steps. It plays 16 steps when the second step bank is empty, or 32 steps when any sound has a hit in steps 17–32. Merely viewing the second bank does not lengthen playback. These are one and two bars in 4/4 time.</p><div class="row"><div class="combo"><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-bank"/></svg><small>Bank</small></span></div><div class="what"><b>Show the other half</b><span>In Note mode: sounds 1–16 or 17–32. In Pattern mode: steps 1–16 or 17–32. A pattern with no hits in steps 17–32 plays one bar.</span></div></div><div class="row"><div class="combo"><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-pattern"/></svg><small>Pattern</small></span><span class="plus">+</span><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-shift"/></svg><small>Shift</small></span><span class="plus">+</span><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-bank"/></svg><small>Bank</small></span></div><div class="what"><b>Copy the visible step bank</b><span>In Pattern mode, hold Pattern and Shift, then tap Bank. All 16 visible steps for every sound replace the other bank. The destination’s previous hits are overwritten.</span></div></div><div class="row"><div class="combo"><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-pattern"/></svg><small>Pattern</small></span><span class="plus">+</span><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-bank"/></svg><small>Bank</small></span><span class="plus">+</span><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-clear"/></svg><small>Clear</small></span></div><div class="what"><b>Clear the visible step bank</b><span>In Pattern mode, hold Pattern and Bank, then tap Clear. Every sound is cleared in the visible 16-step half only. Clearing all hits in steps 17–32 returns the pattern to 16-step playback. There is no undo.</span></div></div><p>The sound bank selection is saved with the pattern. The visible step bank resets to the first half on a manual slot recall.</p></section><section id="slots"><h2>Select copy and erase pattern slots</h2><div class="row"><div class="combo"><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-pattern"/></svg><small>Pattern</small></span><span class="plus">+</span><span class="pad">pad</span></div><div class="what"><b>Select a slot</b><span>Hold Pattern until slots appear, then tap a slot. Empty slots are dark; populated slots glow dimly; the active or queued slot has a quick repeating dip. Release Pattern when finished.</span></div></div><p>While the host plays, manual slot changes wait for the end of the loop: 16 steps, or 32 when the active pattern uses two bars. This also applies while StepBro is stopped with Play, because it keeps counting with the host. With the host stopped, selection is immediate.</p><div class="row"><div class="combo"><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-pattern"/></svg><small>Pattern</small></span><span class="plus">+</span><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-shift"/></svg><small>Shift</small></span><span class="plus">+</span><span class="pad">pad</span></div><div class="what"><b>Copy a slot</b><span>Hold Pattern and Shift. Tap the source, then the destination. The source pulses while waiting. Copying replaces notes, velocities, swing, note length and sound bank, and also copies current sound mutes. Release Pattern to cancel an unfinished copy.</span></div></div><p>The destination becomes active, immediately when the host is stopped or at the end of the loop while it plays. If a pattern chain exists, then copying and selecting a slot end chaining.</p><div class="row"><div class="combo"><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-pattern"/></svg><small>Pattern</small></span><span class="plus">+</span><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-clear"/></svg><small>Clear</small></span><span class="plus">+</span><span class="pad">pad</span></div><div class="what"><b>Erase a whole slot</b><span>Hold Pattern and Clear, then tap the target slot. All 32 sounds and all 32 steps are erased and its pattern settings reset. This is immediate and has no undo. Other slots remain intact.</span></div></div></section><section id="chains"><h2>Chain patterns</h2><div class="row"><div class="combo"><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-pattern"/></svg><small>Pattern</small></span></div><div class="what"><b>Double-tap for chain entry</b><span>Double-tap Pattern cleanly. The Pattern LED blinks and the pads show the slots. Entering chain mode disarms note recording.</span></div></div><p>Tap slots in the order you want them to play. Repeats count as separate entries: 1, 1, 2, 3, 3, 5 makes six entries. A chain holds up to 32 entries.</p><div class="row"><div class="combo"><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-pattern"/></svg><small>Pattern</small></span></div><div class="what"><b>Tap again to finish</b><span>Tap Pattern, or press Note, to finish chain entry. If playing, the new chain begins at the end of the current pattern or chain entry. If stopped, it is ready from its first entry.</span></div></div><p>Each entry plays its complete 16- or 32-step pattern, then advances, and the chain loops. MIDI Start resets the chain to entry 1. MIDI Continue resumes rather than issuing that reset. While StepBro is stopped with Play, the chain keeps its place with the host.</p><p>To stop a chain, manually select a slot, or enter chain mode and leave without tapping any slot. While the host plays, chain cancellation waits for the end of the loop. <b>Chains are not saved across power cycles - meaning when you turn off the device the chaining is gone.</b></p></section><section id="repeat"><h2>Perform with density and the loop window</h2><div class="row"><div class="combo"><span class="namedkey"><span class="knob"></span><small>Knob</small></span></div><div class="what"><b>Thin the pattern out, or fill it back in</b><span>In Pattern mode, turn the knob with nothing held, on the StepBro level. Fully right plays every hit. Turning left drops the weakest hits first, down to the strongest eighth of the pattern at the far left.</span></div></div><p>Each hit’s strength is its velocity, plus extra weight on a beat (steps 1, 5, 9 and 13) and a little on an off-beat eighth. Low ghost notes and off-beat sixteenths go first; accented hits on the beat stay longest. Turning back right brings everything back.</p><p>Density only decides what plays. It never changes the stored pattern and is not saved; the board starts at full density after power-up. Muted sounds are not counted. Like the other knob controls, density waits until you move the knob, so letting go of Shift or a pad, or returning from the Yummy level, never makes it jump. In Note mode the knob on its own sets velocity instead; density stays where you left it.</p><div class="row"><div class="combo"><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-shift"/></svg><small>Shift</small></span><span class="plus">+</span><span class="pad">step</span></div><div class="what"><b>Repeat one step</b><span>In Pattern mode, hold Shift and press a step. That step plays over and over, in time, for as long as you hold it.</span></div></div><div class="row"><div class="combo"><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-shift"/></svg><small>Shift</small></span><span class="plus">+</span><span class="pad">step</span><span class="plus">+</span><span class="pad">step</span></div><div class="what"><b>Loop a range of steps</b><span>Hold Shift, hold one step and press a second: the steps from one to the other loop. You can let go of the steps; the loop runs for as long as Shift is down.</span></div></div><p>Let go of Shift and the full pattern carries on exactly where it would have been: the loop only changes which step StepBro plays, while the host’s timeline keeps counting. The loop starts on the next sixteenth and uses the 16 steps in view; press Bank first to loop steps 17–32. It affects StepBro only; Yummy keeps playing. Pads used for the loop never toggle their steps, and the loop is not saved.</p></section><section id="mutes"><h2>Mute and erase sounds</h2><div class="row"><div class="combo"><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-mute"/></svg><small>Mute</small></span><span class="plus">+</span><span class="pad">pad</span></div><div class="what"><b>Mute a sound in the current pattern</b><span>Hold Mute and tap a sound pad in either grid mode. Pads follow the Note bank, even while editing steps. The tapped sound also becomes selected. Muted sounds flash in the Mute view.</span></div></div><p>Sound mutes belong to individual slots during the session. Muting hats in one slot does not mute them in every slot. Copies include these mutes, but mutes are not retained after power-off.</p><div class="row"><div class="combo"><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-shift"/></svg><small>Shift</small></span><span class="plus">+</span><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-mute"/></svg><small>Mute</small></span><span class="plus">+</span><span class="pad">1–3</span></div><div class="what"><b>Mute StepBro or Yummy MIDI Out or Yummy Audio Out</b><span>Hold Shift and Mute, then tap a pad. Pad 1 mutes StepBro. Pad 2 mutes Yummy’s MIDI notes; notes already sounding get their note-off at once, so nothing hangs. Pad 3 mutes Yummy’s audio with a short fade, echoes included. Muted pads flash. Everything keeps its place underneath, so unmuting comes back in time. These mutes are not saved.</span></div></div><div class="row"><div class="combo"><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-clear"/></svg><small>Clear</small></span><span class="plus">+</span><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-mute"/></svg><small>Mute</small></span></div><div class="what"><b>Unmute the current pattern’s sounds</b><span>Hold Clear and tap Mute. This clears sound mutes in the active slot only. It does not undo Shift + Mute or unmute other slots.</span></div></div><div class="row"><div class="combo"><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-clear"/></svg><small>Clear</small></span><span class="plus">+</span><span class="pad">pad</span></div><div class="what"><b>Erase one sound’s steps</b><span>In Note mode, hold Clear and tap a sound pad. All 32 steps for that sound in the current slot are cleared. Other sounds remain.</span></div></div><div class="row"><div class="combo"><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-shift"/></svg><small>Shift</small></span><span class="plus">+</span><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-clear"/></svg><small>Clear</small></span></div><div class="what"><b>Erase every sound in the active slot</b><span>Hold Shift, press and release Clear while Shift remains held. This removes the current slot’s hits. For a full slot reset, use Pattern + Clear + slot. Neither operation has undo.</span></div></div></section><section id="timing"><h2>MIDI channels transport and timing</h2><div class="row"><div class="combo"><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-shift"/></svg><small>Shift</small></span><span class="plus">+</span><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-play"/></svg><small>Play</small></span><span class="plus">+</span><span class="pad">pad</span></div><div class="what"><b>Choose StepBro’s MIDI channel</b><span>Hold Shift first, then Play. Pads 1–16 select channels 1–16; the bright pad is the current channel. Yummy uses channel 2, so keep StepBro on another channel if your software listens to both.</span></div></div><p>Sounds 1–32 send MIDI notes 36–67 on StepBro’s channel, in ascending semitones. Bank changes the visible 16-sound window. Octave names vary by software: these are C1–G3 in Ableton’s convention. Use note numbers when matching another application.</p><div class="row"><div class="combo"><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-play"/></svg><small>Play</small></span></div><div class="what"><b>Stop StepBro, then bring it back on the beat</b><span>While the host runs, press Play to stop StepBro at once. It goes silent but keeps counting with the host, chains included. Press Play again: the Play LED blinks, and StepBro comes back in on the next beat, on the step the host is on. Press Play again while it blinks to cancel. Start from the host to reset playback; Continue resumes the position.</span></div></div><p>This source handles MIDI Clock, Start, Continue and Stop. It does not implement MIDI Song Position Pointer. Do not assume it jumps to a host song position when starting midway through a song.</p><div class="row"><div class="combo"><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-play"/></svg><small>Play</small></span><span class="plus">+</span><span class="namedkey"><span class="knob"></span><small>Knob</small></span></div><div class="what"><b>Adjust MIDI lead while the host is stopped</b><span>Stop the host. Hold Play and turn the knob to set 0–16 ms in 1 ms increments. The grid lights one pad per millisecond; no pads means 0 ms, all 16 means 16 ms. Default is 4 ms (four pads lit). The setting is saved with your patterns.</span></div></div><p>Lead sends predicted sequencer notes earlier to compensate for host and USB latency. Rolls riding the step clock follow it; manually played notes are immediate. The first step after Start cannot be predicted early; a restart with Play is. Record a test and adjust lead to your setup. Play + knob does not change lead while the host transport runs.</p></section><section id="save"><h2>Saving lights and troubleshooting</h2><p>Patterns, step velocities, swing, note length, sound bank, the last active slot, the MIDI channel and MIDI lead are saved, together with all of Yummy’s work, in one save. Saving happens about 1.5 seconds after the last change, once the host transport and Yummy are both stopped and no keys are held. The Play LED blinks quickly while a save runs. Allow a few seconds after stopping before disconnecting.</p><p>Chains, sound mutes, the Shift + Mute mutes, density, the loop window and live audition velocity settings are session controls and are not saved. Programmed hits changed with the velocity knob are saved like any other edit. The panel starts on the StepBro level after power-up.</p><table><thead><tr><th>Indicator</th><th>Meaning</th></tr></thead><tbody><tr><td>Note LED blinking</td><td>Recording armed.</td></tr><tr><td>Pattern LED blinking in chain entry</td><td>Pads are adding chain entries.</td></tr><tr><td>Bank LED blinks slowly</td><td>The Yummy level is shown.</td></tr><tr><td>Play LED blinks quickly while the host runs</td><td>StepBro is stopped and will come back in on the next beat.</td></tr><tr><td>Play LED blinks quickly while stopped</td><td>Saving.</td></tr><tr><td>Flashing pad 2 or 3 in the Shift + Mute view</td><td>Yummy’s MIDI or audio is muted.</td></tr><tr><td>Quick dip in slot view</td><td>Active or queued slot.</td></tr><tr><td>Flashing sound in Mute view</td><td>Sound is muted in this slot.</td></tr><tr><td>Pulsing slot while copying or erasing</td><td>Copy source or erase target view.</td></tr><tr><td>Brief pad flash</td><td>A sound or chain entry was triggered or selected.</td></tr><tr><td>Dim pad moving across Note mode, brighter on pad 1</td><td>Recording armed: the playhead, and the start of each bar.</td></tr><tr><td>Brightness in step view</td><td>Hit velocity; the current step also receives playhead feedback.</td></tr></tbody></table><table><thead><tr><th>Problem</th><th>Check</th></tr></thead><tbody><tr><td>Pads send no sound</td><td>Route the matching USB MIDI port and channel to an instrument and enable monitoring. StepBro itself produces no audio.</td></tr><tr><td>Sequence will not run</td><td>Enable clock/Sync output to the board and start the host transport. If StepBro was stopped with Play, press Play and wait for the next beat.</td></tr><tr><td>Expected sound missing</td><td>Check the sound bank, MIDI mapping, the current slot’s sound mutes, Shift + Mute pad 1, and the knob’s density setting.</td></tr><tr><td>Loop stays one bar</td><td>Place at least one hit in steps 17–32. Viewing bank 2 alone does not extend it.</td></tr><tr><td>Slot change seems delayed</td><td>Manual changes wait for the end of the 16- or 32-step loop; chain entries use their own pattern length.</td></tr><tr><td>Chain, mutes, density or the loop window reset after restart</td><td>Expected: they are not saved.</td></tr><tr><td>Hits missing during playback</td><td>In Pattern mode, turn the knob fully right (full density).</td></tr><tr><td>Notes cut short</td><td>Hold Mute and turn the knob to the right to lengthen the pattern’s note length.</td></tr><tr><td>Pattern edits lost after restart</td><td>Stop the host, release all keys and wait until the Play LED stops blinking quickly. If edits are still lost, switch to the Yummy level, record FUNCTION + PLAY into a MIDI clip and export it: the report shows why the save did not happen.</td></tr><tr><td>LEDs all remain dark</td><td>The firmware can still send MIDI if the LED driver is unavailable. Confirm MIDI operation and report the hardware fault.</td></tr></tbody></table></section><section id="update"><h2>Firmware updates</h2><p>StepBro and Yummy are one firmware. Updating it updates both and keeps your saved work. Use StepDaddy, the updater, on macOS or Windows: open it and follow its instructions. It works out which board you have, or asks: the Step Mother 1 has a micro-USB socket, the Step Mother 2 a USB-C socket.</p><div class="row"><div class="combo"><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-shift"/></svg><small>Shift</small></span><span class="plus">+</span><span class="namedkey"><svg class="key" aria-hidden="true"><use href="#k-clear"/></svg><small>Clear</small></span></div><div class="what"><b>Install mode at power-up</b><span>Disconnect USB. Hold Shift and Clear (Glide and Function on the Yummy level) while reconnecting, and keep them down for half a second. StepDaddy asks for this when it needs it. The combination is checked only at power-up; during normal operation Shift + Clear erases the current slot’s hits.</span></div></div><p><b>Step Mother 1 (Teensy, micro-USB):</b> StepDaddy can usually restart the board into install mode on its own, with no keys. If it asks, use Shift + Clear at power-up.</p><p><b>Step Mother 2 (RP2040, USB-C):</b> use Shift + Clear at power-up; the board appears as a drive called RPI-RP2, StepDaddy copies the firmware onto it and the board restarts. A brand-new board opens RPI-RP2 by itself.</p><p>Updates keep your patterns, settings and Yummy’s work. The firmware version is shown by StepDaddy.</p></section><footer><span>StepBro / Layer 1</span><span>Firmware 1.2.0 · Updated 14 November 2026</span></footer></main></body></html>

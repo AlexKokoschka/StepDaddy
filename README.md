@@ -57,8 +57,8 @@ before anything else, so it works even if the rest of the firmware misbehaves.
 - **Video tutorials:** [general introduction](https://youtu.be/5FidxB0JIPQ),
   [beat programming (StepBro)](https://youtu.be/w0sGw5nPOf4) and
   [synth programming (Yummy Gummy)](https://youtu.be/CbF5JtVqbY4).
-- **User manuals** (PDF): [StepBro](docs/manuals/StepBro_User_Manual_v1.0.0.pdf)
-  and [Yummy Gummy](docs/manuals/Yummy_User_Manual_v1.0.0.pdf).
+- **User manuals** (PDF): [StepBro](docs/manuals/StepBro_User_Manual_v1.2.0.pdf)
+  and [Yummy Gummy](docs/manuals/Yummy_User_Manual_v1.2.0.pdf).
 - **Quick references** (one page each, firmware 1.2.0):
   [StepBro](docs/manuals/StepBro_Quick_Reference_v1.2.0.pdf) and
   [Yummy Gummy](docs/manuals/Yummy_Quick_Reference_v1.2.0.pdf).
