@@ -1,3 +1,20 @@
+# 1.3.0
+
+- **Yummy: TB-303 timings.** Slide, Decay, accent and the amplifier now use
+  time constants measured on a TB-303 hardware unit. They come from the
+  DW-303 project (GPL-3.0-or-later, github.com/mo0kid/DW-303), whose circuit
+  model was fitted to 346 recordings of the real thing:
+  - **Slide** is faster: the pitch glides over about 50 ms (time constant
+    23 ms, was 60 ms).
+  - **Decay** runs from 68 ms to 0.83 s, on the TB-303's knob taper.
+  - **Accented notes** always decay in 68 ms, whatever the Decay knob.
+  - **Accent sweep** charges in 50 to 40 ms and fades in 102 to 82 ms,
+    shorter as Resonance goes up.
+  - **Held notes** fade over about 1.5 s (was 3 s); the gate releases in
+    4 ms (was 8 ms).
+- Saved patterns and settings from 1.2.0 load as they are; they play with the
+  new timings.
+
 # 1.2.0
 
 - **StepBro, Note mode:** with record armed and the host playing, the playhead

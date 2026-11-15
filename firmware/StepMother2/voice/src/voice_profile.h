@@ -29,10 +29,14 @@ static inline voice_profile_mod_t voice_profile_mod(float cutoff, float envmod) 
 }
 // Per-sample coefficient at 44.1 kHz, before sample-rate conversion.
 // decay_shape is sqrt(normalized Decay), smoothed in that domain.
-static inline float voice_profile_decay_rate(float resonance, float decay_shape,
-                                         int accented) {
-  // 0.3.6: 20% slower overall, matched to the same 303 emulation's Decay sweep.
-  float fast=0.8f*(0.00029f*(1.0f-resonance)+0.00027f*resonance);
-  return accented ? fast : fast*(1.0f-decay_shape)+0.8f*0.000017f*decay_shape;
+// 1.3.0: time constants measured on a TB-303. They come from the DW-303
+// project (GPL-3.0-or-later, github.com/mo0kid/DW-303), whose circuit model
+// was fitted to 346 hardware recordings: an accented note decays in 68 ms
+// whatever the knob; otherwise Decay sweeps 68 ms .. 0.83 s on that
+// project's knob taper (0.6x^3 + 0.4x^2).
+static inline float voice_profile_decay_rate(float decay_shape, int accented) {
+  float x=decay_shape*decay_shape;
+  float tau=accented ? 0.068f : 0.068f+0.76f*x*x*(0.6f*x+0.4f);
+  return 1.0f/(tau*44100.0f);
 }
 #endif

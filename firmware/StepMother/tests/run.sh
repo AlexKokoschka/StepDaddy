@@ -27,6 +27,8 @@ g++ -std=c++17 -O1 -g -Wall -Wextra -Wno-unused-parameter -fsanitize=undefined -
 tests/build/storage_platform
 gcc $ccflags tests/audio_platform.c src/audio.c src/profile.c voice/src/voice303.c voice/src/seq303.c -lm -o tests/build/audio_platform
 tests/build/audio_platform
+gcc $ccflags tests/timing303.c -lm -o tests/build/timing303_test
+tests/build/timing303_test
 make -C voice test profile-test stress-test
 L=vendor/avr/libraries/LittleFS/src/littlefs
 gcc -std=c11 -O1 -g -I$L -DLFS_NO_DEBUG -DLFS_NO_WARN -DLFS_NO_ERROR tests/lfs_capacity.c $L/lfs.c $L/lfs_util.c -o tests/build/lfs_capacity 2>/dev/null

@@ -1,6 +1,6 @@
 # Step Mother developer guide
 
-Firmware 1.2.0 · November 2026
+Firmware 1.3.0 · November 2026
 
 ## Overview
 
@@ -180,8 +180,15 @@ request shows the same checks before merging.
 Yummy's filter is a four-pole zero-delay-feedback ladder (trapezoidal one-pole
 stages with rational saturation; the feedback loop is solved within each
 sample), so it stays in tune up to the top of its range without oversampling.
-Its resonance, cutoff scaling, Env Mod and Decay curves and output level were
-fitted to audio measurements of a reference 303 emulation.
+Its resonance, cutoff scaling, Env Mod curve and output level were fitted to
+audio measurements of a reference 303 emulation.
+
+Since 1.3.0 its time constants are those measured on a TB-303 by the DW-303
+project (GPL-3.0-or-later, [github.com/mo0kid/DW-303](https://github.com/mo0kid/DW-303)),
+whose circuit model was fitted to 346 hardware recordings: slide 23 ms, Decay
+68 ms to 0.83 s (68 ms under accent), accent sweep charge 50 to 40 ms and fade
+102 to 82 ms by Resonance, a held note fading over about 1.5 s and a 4 ms gate
+release. `tests/timing303.c` checks them.
 
 The constants live in `voice/src/voice303.c` (filter and level, in the block
 that computes `k_full` and `level_fit`) and `voice/src/voice_profile.h`
@@ -332,7 +339,7 @@ that, everything works with the case shut.
 
 ## Reference
 
-### Limits that shape changes (1.2.0)
+### Limits that shape changes (1.3.0)
 
 Teensy 4.1 (Step Mother 1). For the RP2040 see `firmware/StepMother2/README.md`:
 about 12.5 KiB of static RAM margin, program and constants run from RAM.

@@ -360,14 +360,14 @@ static void control_update(voice_t *v) {
     v->mode_smooth=(float)v->p.dist_type;
   float c=v->knob[0],r=v->knob[1],env=v->knob[2],acc=v->knob[4];
 
-  // Decay coefficient fitted to audio measurements, converted to block rate.
-  float rate=voice_profile_decay_rate(r,v->knob[3],v->accented);
-  // log(1-rate) through fourth order; rate <= .00029.
+  // Decay coefficient (TB-303 time constants), converted to block rate.
+  float rate=voice_profile_decay_rate(v->knob[3],v->accented);
+  // log(1-rate) through fourth order; rate <= .00034.
   float log_keep=-rate*(1.0f+rate*(0.5f+rate*(1.0f/3.0f+rate*0.25f)));
   v->meg*=fast_exp(log_keep*44100.0f*T_BLOCK);
   if (v->meg<1e-12f) v->meg=0;
 
-  // Retain Yummy's amplifier timing in this pass.
+  // Amplifier: 3 ms attack, ~1.5 s fade while held, 4 ms release (TB-303).
   if (v->gate) {
     if (v->vca_attack) {
       v->vca+=v->c.vca_attack_step;
@@ -378,8 +378,10 @@ static void control_update(voice_t *v) {
   // Persistent charge, follower and amplitude states approximate a coupled
   // accent envelope network. Never clear the states on every note.
   float target=v->accented ? v->meg : 0.0f;
-  float charge=1.0f-fast_exp(-T_BLOCK/(0.008f+0.060f*r));
-  float release=1.0f-fast_exp(-T_BLOCK/(0.040f+0.160f*r));
+  // 1.3.0: charge 50 .. 40 ms and fade 102 .. 82 ms by Resonance (TB-303,
+  // after DW-303).
+  float charge=1.0f-fast_exp(-T_BLOCK/(0.050f-0.010f*r));
+  float release=1.0f-fast_exp(-T_BLOCK/(0.102f-0.020f*r));
   v->acc_charge+=(target-v->acc_charge)*(target>v->acc_charge ? charge : release);
   v->acc_sweep+=(v->acc_charge-v->acc_sweep)*v->profile.acc_follow;
   float excitation=acc*v->acc_charge;
@@ -504,10 +506,12 @@ void voice_init(voice_t *v) {
   v->n_notes = 1;
 
   // constants
-  v->c.glide_coef      = 1.0f - fast_exp(-T_BLOCK / 0.06f);
+  // 1.3.0: TB-303 slide (23 ms) and amplifier times, after DW-303
+  // (GPL-3.0-or-later, github.com/mo0kid/DW-303).
+  v->c.glide_coef      = 1.0f - fast_exp(-T_BLOCK / 0.023f);
   v->c.vca_attack_step = T_BLOCK / 0.003f;
-  v->c.vca_hold_mul    = fast_exp(-T_BLOCK / 3.0f);
-  v->c.vca_release_mul = fast_exp(-T_BLOCK / 0.008f);
+  v->c.vca_hold_mul    = fast_exp(-T_BLOCK / 1.5f);
+  v->c.vca_release_mul = fast_exp(-T_BLOCK / 0.004f);
   v->g_hp = Q30(coef_onepole(100.0f, FS_FILTER));   // feedback high-pass at 100 Hz
   v->g_dc = Q30(coef_onepole(10.0f, VOICE_FS));
   v->g_dl_lp = Q30(coef_onepole(3500.0f, VOICE_FS));
