@@ -77,10 +77,10 @@ static void reference_mappings(void) {
   CHECK(fabsf(m.scale-.3784304f)<1e-6f && fabsf(m.depth-.4841f)<1e-6f);
   m=voice_profile_mod(.5f,.5f);
   CHECK(fabsf(m.depth-.2880125f)<1e-6f);
-  CHECK(fabsf(voice_profile_decay_rate(.5f,0,0)-.000224f)<1e-9f);
-  CHECK(fabsf(voice_profile_decay_rate(.5f,1,0)-.0000136f)<1e-9f);
-  CHECK(fabsf(voice_profile_decay_rate(.5f,1,1)-.000224f)<1e-9f);
-  puts("PASS modulation and decay mapping fixtures (1.0.0 values, matched to a 303 emulation)");
+  CHECK(fabsf(voice_profile_decay_rate(0,0)*0.068f*44100.0f-1.0f)<1e-5f);   // 68 ms
+  CHECK(fabsf(voice_profile_decay_rate(1,0)*0.828f*44100.0f-1.0f)<1e-5f);   // 0.83 s
+  CHECK(fabsf(voice_profile_decay_rate(1,1)*0.068f*44100.0f-1.0f)<1e-5f);   // accent: 68 ms
+  puts("PASS modulation fixtures (1.0.0) and TB-303 decay times (1.3.0)");
 }
 static void invalid_parameters(void) {
   voice_init(&a);voice_params_t p=a.p;

@@ -23,4 +23,6 @@ gcc $ccflags tests/profile.c src/profile.c -o tests/build/profile_test
 tests/build/profile_test
 gcc $ccflags tests/delay.c -lm -o tests/build/delay_test
 tests/build/delay_test
+gcc $ccflags tests/timing303.c -lm -o tests/build/timing303_test
+tests/build/timing303_test
 make -C voice test profile-test stress-test
