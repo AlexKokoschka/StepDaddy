@@ -281,6 +281,15 @@ static void derive_params(voice_t *v) {
   const voice_params_t *p = &v->p;
 
   v->d.decay_shape=sqrtf(p->decay);
+  // TEST: timing set 1 uses time constants from the DW-303 project (GPL-3.0-
+  // or-later, github.com/mo0kid/DW-303), whose circuit model was fitted to
+  // 346 hardware recordings: slide 23 ms, accent decay 68 ms, Decay knob
+  // 68 ms .. 0.83 s, accent sweep charge ~40-50 ms / fade ~80-100 ms by
+  // Resonance, held-note fade ~1.5 s, gate release a few ms.
+  bool hw=p->timing!=0;
+  v->c.glide_coef      = 1.0f - fast_exp(-T_BLOCK / (hw ? 0.023f : 0.06f));
+  v->c.vca_hold_mul    = fast_exp(-T_BLOCK / (hw ? 1.5f : 3.0f));
+  v->c.vca_release_mul = fast_exp(-T_BLOCK / (hw ? 0.004f : 0.008f));
   v->d.tune_semis = (p->tune - 0.5f) * 14.0f;                      // +-7 semitones
   // Knob-derived DSP is smoothed and mapped in control_update. These
   // coefficient arrays depend only on the chosen Drive and chord size.
@@ -361,7 +370,12 @@ static void control_update(voice_t *v) {
   float c=v->knob[0],r=v->knob[1],env=v->knob[2],acc=v->knob[4];
 
   // Decay coefficient fitted to audio measurements, converted to block rate.
-  float rate=voice_profile_decay_rate(r,v->knob[3],v->accented);
+  float rate;
+  if (v->p.timing) {                // TEST: 68 ms under accent; knob 68 ms .. 0.83 s
+    float x=v->knob[3]*v->knob[3];  // knob[3] is sqrt(decay)
+    float tau=v->accented ? 0.068f : 0.068f+0.76f*x*x*(0.6f*x+0.4f);
+    rate=1.0f/(tau*44100.0f);
+  } else rate=voice_profile_decay_rate(r,v->knob[3],v->accented);
   // log(1-rate) through fourth order; rate <= .00029.
   float log_keep=-rate*(1.0f+rate*(0.5f+rate*(1.0f/3.0f+rate*0.25f)));
   v->meg*=fast_exp(log_keep*44100.0f*T_BLOCK);
@@ -378,8 +392,8 @@ static void control_update(voice_t *v) {
   // Persistent charge, follower and amplitude states approximate a coupled
   // accent envelope network. Never clear the states on every note.
   float target=v->accented ? v->meg : 0.0f;
-  float charge=1.0f-fast_exp(-T_BLOCK/(0.008f+0.060f*r));
-  float release=1.0f-fast_exp(-T_BLOCK/(0.040f+0.160f*r));
+  float charge=1.0f-fast_exp(-T_BLOCK/(v->p.timing ? 0.050f-0.010f*r : 0.008f+0.060f*r));
+  float release=1.0f-fast_exp(-T_BLOCK/(v->p.timing ? 0.102f-0.020f*r : 0.040f+0.160f*r));
   v->acc_charge+=(target-v->acc_charge)*(target>v->acc_charge ? charge : release);
   v->acc_sweep+=(v->acc_charge-v->acc_sweep)*v->profile.acc_follow;
   float excitation=acc*v->acc_charge;
@@ -552,6 +566,7 @@ void voice_set_params(voice_t *v, const voice_params_t *p) {
   v->p.delay_time=normalized(p->delay_time);v->p.delay_amount=normalized(p->delay_amount);
   v->p.dist_drive=normalized(p->dist_drive);
   v->p.dist_type=p->dist_type ? 1 : 0;
+  v->p.timing=p->timing ? 1 : 0;
   v->p.wave=p->wave==WAVE_SQUARE ? WAVE_SQUARE : WAVE_SAW;
   derive_params(v);
 }

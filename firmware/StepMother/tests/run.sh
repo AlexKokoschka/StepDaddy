@@ -22,6 +22,8 @@ gcc $ccflags tests/profile.c src/profile.c -o tests/build/profile_test
 tests/build/profile_test
 gcc $ccflags tests/delay.c -lm -o tests/build/delay_test
 tests/build/delay_test
+gcc $ccflags tests/timing303.c -lm -o tests/build/timing303_test
+tests/build/timing303_test
 gcc $ccflags -c src/persist.c -o tests/build/file_persist.o
 g++ -std=c++17 -O1 -g -Wall -Wextra -Wno-unused-parameter -fsanitize=undefined -fno-sanitize-recover=all -Itests/platform -Isrc -Ivoice/src tests/storage_platform.cpp src/storage_teensy.cpp tests/build/file_persist.o -o tests/build/storage_platform
 tests/build/storage_platform

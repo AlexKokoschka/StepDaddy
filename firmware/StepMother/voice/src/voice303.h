@@ -42,6 +42,7 @@ typedef struct {
   float delay_time;  // 0..1 -> 1/16, 1/8T, 1/8, 1/4T, 1/8D, 1/4 (tempo-synced)
   float dist_drive;  // 0..1: independent Drive; default 0.5
   float delay_amount;// 0 = off .. 1 = long dub tails (echo level and feedback together)
+  uint8_t timing;    // TEST: 0 = Yummy's timings, 1 = timings measured on a TB-303 (see voice303.c)
 } voice_params_t;
 
 #define VOICE_DELAY_LEN   49152   // delay span in 48 kHz samples (~1 s)
