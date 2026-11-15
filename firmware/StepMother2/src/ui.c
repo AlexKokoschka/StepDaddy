@@ -975,7 +975,7 @@ static bool dist_held;                               // Distortion pad held: pad
 // TEST build: hold Decay (pad 4) and tap pad 1 for Yummy's timings or pad 2 for
 // timings measured on a TB-303 (glide, decay, accent, amp). Not saved.
 static bool decay_held;
-static int decay_knob_start;
+static float decay_at_press;                       // the overlay stays until Decay itself changes
 
 static void function_page_press(int pad) {
   if (fn_pad < 0 && pad == FP_RANDOM && fn_sel == FP_RANDOM) { random_pattern(); return; }   // selected: roll
@@ -995,7 +995,7 @@ static void function_page_press(int pad) {
     else if (auto_tap_pad == pad && now - auto_tap_ms <= DOUBLE_TAP_MS) { auto_armed = a; auto_tap_pad = -1; }
     else { auto_tap_pad = pad; auto_tap_ms = now; }
   }
-  if (fn_pad < 0 && pad == FP_DECAY) { decay_held = true; decay_knob_start = panel_knob(); }
+  if (fn_pad < 0 && pad == FP_DECAY) { decay_held = true; decay_at_press = params.decay; }
   if (fn_pad < 0 && pad == FP_DIST) {
     dist_held = true;
     dist_drive_turned = false;
@@ -1363,10 +1363,10 @@ static void function_page_leds(uint8_t *pads, uint32_t now) {
       int k = panel_knob() * 16 / 4096;
       pads[k] = blink ? L_BRIGHT : L_OFF;
     }
-  } else if (decay_held && abs(panel_knob() - decay_knob_start) < KNOB_ACTIVATE) {   // TEST: timings on pads 1/2
+  } else if (decay_held && params.decay == decay_at_press) {   // TEST: timings on pads 1/2
     for (int i = 0; i < 16; i++) pads[i] = L_OFF;
-    pads[0] = params.timing == 0 ? L_BRIGHT : L_DIM;
-    pads[1] = params.timing == 1 ? L_BRIGHT : L_DIM;
+    pads[0] = params.timing == 0 ? L_BRIGHT : L_MID;
+    pads[1] = params.timing == 1 ? L_BRIGHT : L_MID;
     pads[FP_DECAY] = L_FULL;
   } else if (dist_held) {                            // Distortion held: the type on pads 1/2
     pads[0] = params.dist_type == 0 ? L_BRIGHT : L_DIM;

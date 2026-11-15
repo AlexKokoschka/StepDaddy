@@ -34,3 +34,4 @@ int test_yummy_chain_at(int i){return ui_chain[i];}
 int test_yummy_edit_slot(void){return edit_slot;}
 int test_yummy_chain_entry(void){return chain_entry;}
 int test_yummy_step_pitch(int st){uint8_t n[SEQ_MAX_NOTES];int c=seq_step_get(pat(),&pat()->steps[st],n);return c?n[0]:-1;}
+int test_yummy_timing(void){return params.timing;}

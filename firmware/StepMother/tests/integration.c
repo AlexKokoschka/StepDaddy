@@ -649,6 +649,13 @@ int main(void) {
    {int all=1;for(int k=0;k<16;k++)if(led[k]!=230)all=0;assert(all);}
    wait_ms(300);}
   tap(KEY_NOTE);chord(KEY_GLIDE,KEY_WAVE,KEY_PLAY);assert(!test_yummy_active());}
+ {extern int test_yummy_timing(void);system_msg(0xFC);wait_ms(50);if(!test_yummy_active())chord(KEY_GLIDE,KEY_WAVE,KEY_PLAY);
+  tap(KEY_FUNCTION);wait_ms(30);
+  key(pad_key(3),1);wait_ms(50);uint16_t k0=knob;for(int i=0;i<40;i++){knob=(uint16_t)(k0+(i&1?90:-90));wait_ms(5);}knob=k0;wait_ms(20);
+  assert(led[0]==140&&led[1]==30&&led[3]==230);                   // TEST: timings shown, also with a noisy knob
+  tap(pad_key(1));wait_ms(30);assert(led[0]==30&&led[1]==140&&test_yummy_timing()==1);
+  tap(pad_key(0));wait_ms(30);assert(test_yummy_timing()==0);
+  key(pad_key(3),0);wait_ms(30);}
  printf("PASS integration: StepBro note/step/velocity, both transports, six chord orders, four-note audition, hold cleanup, background playback, local Play, chains, Pattern + knob inert, Mute + knob gate length, beat-quantised local restart in DAW time, knob density, recorded rolls, Yummy automation, Drive/Mix pickup, actual v0.2.3 save import, metadata upgrade and Drive retention, Yummy MIDI/audio mutes from Shift+Mute, MIDI out off by default (older saves too), scale-following melodies, Yummy MIDI channel / out / lead pads, USB-only clock, 1 ms Yummy lead with old-save conversion, save-blocker diagnostics, all-notes-off, 1.2.0 LEDs and record playheads, Note-mode velocity knob with pickup and step scaling, roll velocity on the knob (also recorded), Yummy chain entry by double-tapping Pattern, step note edits reach C1..C4 from any knob position, StepBro loop window, loop range light, loop pads under Mute, velocity knob on the loudest hit with a dead band, step-edit dead band, silent saves.\n");
  return 0;
 }
