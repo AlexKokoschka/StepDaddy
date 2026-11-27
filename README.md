@@ -1,27 +1,33 @@
 # Step Daddy
 
-Open-source firmware and updater for the **Step Mother**, a 23-key USB MIDI
-controller built around a Teensy 4.1 (Step Mother 1) or an RP2040 (Step Mother 2). Its firmware runs **StepBro**, a
+Open-source firmware and updater for the **Step Mother** and the **Step Sister**,
+23-key USB MIDI controllers. The Step Mother comes with a micro-USB socket
+(Teensy 4.1) or a USB-C socket (RP2040); the Step Sister is the USB-C Step
+Mother's board on a smaller panel with smaller keys. Their firmware runs **StepBro**, a
 MIDI step sequencer, and **Yummy Gummy**, a 303-style bass synth with its own
 sequencer that streams 48 kHz audio to the computer over USB.
 **Shift + Bank + Play** switches the panel between them; both keep playing.
 **StepDaddy**, the updater, installs the firmware without opening the
-enclosure. The Step Mother's PCB and enclosure are open hardware too, in the
+enclosure. The PCB and enclosure are open hardware too, in the
 **[StepMother](https://github.com/AlexKokoschka/StepMother)** repository.
 
-| | Step Mother 1 | Step Mother 2 |
-|---|---|---|
-| MCU | Teensy 4.1, 600 MHz | RP2040, 200 MHz |
-| Source | `firmware/StepMother/` | `firmware/StepMother2/` |
-| Built with | Teensyduino 1.62.0 subset (`vendor/`), `tools/build_teensy.py` | Pico SDK 2.1.1, CMake |
-| USB name (MIDI and audio) | `Step Mother` | `Step Mother` |
-| Firmware file | `StepMother_firmware_v<version>.hex` | `StepMother2_firmware_v<version>.uf2` |
-| Installed with | StepDaddy, or Teensy Loader | StepDaddy, or copy onto the RPI-RP2 drive |
+| | Step Mother (USB micro) | Step Mother (USB-C) | Step Sister |
+|---|---|---|---|
+| MCU | Teensy 4.1, 600 MHz | RP2040, 200 MHz | RP2040, 200 MHz |
+| Source | `firmware/StepMother/` | `firmware/StepMother2/` | `firmware/StepMother2/`, built with `-DSTEP_BOARD_NAME="Step Sister"` |
+| Built with | Teensyduino 1.62.0 subset (`vendor/`), `tools/build_teensy.py` | Pico SDK 2.1.1, CMake | Pico SDK 2.1.1, CMake |
+| USB name (MIDI and audio) | `Step Mother` | `Step Mother` | `Step Sister` |
+| Firmware file | `StepMother_firmware_v<version>.hex` | `StepMother2_firmware_v<version>.uf2` | `StepSister_firmware_v<version>.uf2` |
+| Installed with | StepDaddy, or Teensy Loader | StepDaddy, or copy onto the RPI-RP2 drive | StepDaddy, or copy onto the RPI-RP2 drive |
 
-## Why a second board: the Step Mother 2
+The Step Sister runs exactly the Step Mother (USB-C) firmware: same board,
+same features, same saved patterns. Only its name differs, so it shows up as
+"Step Sister" in your music software.
 
-The Step Mother 2 swaps the Teensy 4.1 for an RP2040 on the same panel and the
-same firmware.
+## Why the RP2040 boards
+
+The Step Mother (USB-C) swaps the Teensy 4.1 for an RP2040 on the same panel
+and the same firmware.
 
 - **Easier to source.** The RP2040 is a widely stocked chip, where the Teensy
   module is a single-supplier part.
@@ -31,25 +37,27 @@ same firmware.
   through SMD assembly: less time, less cost, fewer soldering errors.
 - **USB-C.** The Teensy's micro-USB socket is replaced by a USB-C connector.
 
-The Step Mother 1 (Teensy 4.1) stays supported, and one StepDaddy updates both.
+The Step Mother (USB micro, Teensy 4.1) stays supported, and one StepDaddy
+updates all three boards.
 
 ## Where to buy
 
-Assembled Step Mothers are handmade in small batches in Lausanne, Switzerland:
-**[Step Mother on Ko-fi](https://ko-fi.com/s/28225d3770)**.
+Step Mothers and Step Sisters are handmade in small batches in Lausanne,
+Switzerland: **[stepmother-sequencer.com](https://stepmother-sequencer.com)**.
 
 ## Download and install
 
 Get StepDaddy for macOS or Windows from the [Releases](../../releases) page
-and open it. It carries the firmware for both boards and works out which one
-you have (or asks). Patterns and settings are kept. Details,
+and open it. It carries the firmware for all three boards and works out which
+one you have (or asks). Patterns and settings are kept. Details,
 including the one-time security warning for the unsigned apps:
 `updater/README.md`.
 
 By hand: hold **Glide + Function** (Shift + Clear on older panels) while
-plugging in USB and keep holding for about a second. On the Step Mother 1 the
-Teensy bootloader starts: use Teensy Loader with the `.hex`. On the Step
-Mother 2 an RPI-RP2 drive appears: copy the `.uf2` onto it. The check runs at power-up
+plugging in USB and keep holding for about a second. On the Step Mother (USB
+micro) the Teensy bootloader starts: use Teensy Loader with the `.hex`. On the
+Step Mother (USB-C) and the Step Sister an RPI-RP2 drive appears: copy that
+board's `.uf2` onto it. The check runs at power-up
 before anything else, so it works even if the rest of the firmware misbehaves.
 
 ## Documentation
@@ -69,11 +77,12 @@ before anything else, so it works even if the rest of the firmware misbehaves.
 ## Layout
 
 ```
-firmware/StepMother/   Step Mother 1 (Teensy 4.1) firmware: src/, voice/ (the
+firmware/StepMother/   Step Mother USB micro (Teensy 4.1) firmware: src/, voice/ (the
                        Yummy synth voice and sequencer), tests/, tools/,
                        vendor/ (Teensyduino 1.62.0 subset, patched at build time)
-firmware/StepMother2/  Step Mother 2 (RP2040) firmware: src/, voice/, tests/,
-                       tools/ (built with the Pico SDK)
+firmware/StepMother2/  Step Mother USB-C and Step Sister (RP2040) firmware:
+                       src/, voice/, tests/, tools/ (built with the Pico SDK,
+                       once per board name)
 updater/               StepDaddy, the updater (step_daddy.py, its tests, README)
 docs/                  user manuals (PDF) and the developer guide
 .github/workflows/     CI: builds and tests the firmware, builds StepDaddy
@@ -98,8 +107,8 @@ See `firmware/StepMother/README.md` for details. The RP2040 firmware
    a CHANGELOG entry to each.
 2. Push to `main`. CI builds and tests the firmware, tests StepDaddy, builds it
    for macOS and Windows, and publishes the files to the `builds` branch.
-3. Create a GitHub release `v<version>` with the `.hex` and `.uf2`, both StepDaddy files
-   and the two manual PDFs.
+3. Create a GitHub release `v<version>` with the `.hex`, both `.uf2` files, both
+   StepDaddy files and the manual PDFs.
 
 ## Contributing
 

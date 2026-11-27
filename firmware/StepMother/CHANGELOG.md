@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.4.0
+
+- **Step Sister support.** The Step Sister, the USB-C Step Mother's board on
+  a smaller panel with smaller keys, gets its own firmware file,
+  `StepSister_firmware_v1.4.0.uf2`. It is the same firmware as the Step Mother
+  (USB-C), with every feature up to 1.3.0, built under its own name: it shows
+  up as "Step Sister" in your music software.
+- **StepDaddy updates all three boards.** With an RP2040 board in update mode,
+  StepDaddy reads the firmware already on it to tell a Step Mother (USB-C) from
+  a Step Sister, and says which version it had. A blank board, or nothing
+  connected yet, gets a question instead. It asks before putting one board's
+  firmware on the other.
+- No changes to StepBro or Yummy Gummy. Patterns and settings from 1.3.0 load
+  as they are.
+
 ## 1.3.0
 
 - **Yummy: TB-303 timings.** Slide, Decay, accent and the amplifier now use

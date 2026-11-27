@@ -2,11 +2,13 @@
 #define FIRMWARE_VERSION_H_
 
 // The Step Mother firmware: StepBro and Yummy Gummy in one. One version for
-// both boards (Step Mother 1, Teensy 4.1, and Step Mother 2, RP2040); CI reads
+// every board (Step Mother USB micro, Teensy 4.1; Step Mother USB-C and Step
+// Sister, both RP2040); CI reads
 // this line to name the build, and the StepDaddy updater reads FIRMWARE_TAG
 // from the image to show which version a file holds.
-#define FIRMWARE_VERSION_STRING "1.3.0"
+#define FIRMWARE_VERSION_STRING "1.4.0"
 // The product name (USB device, audio/MIDI port names and the version tag).
+// The Step Sister build sets it to "Step Sister" (CMakeLists.txt).
 #ifndef FIRMWARE_BOARD_NAME
 #define FIRMWARE_BOARD_NAME     "Step Mother"
 #endif

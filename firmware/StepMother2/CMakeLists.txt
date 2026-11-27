@@ -16,6 +16,13 @@ target_compile_definitions(stepmother2 PRIVATE
  PICO_XOSC_STARTUP_DELAY_MULTIPLIER=64 SYS_CLK_MHZ=200 PICO_PANIC_FUNCTION=tb303_panic)
 target_link_libraries(stepmother2 PRIVATE pico_stdlib pico_multicore pico_unique_id pico_bootrom
  hardware_watchdog hardware_adc hardware_i2c hardware_flash hardware_sync tinyusb_device)
+# The Step Sister is the same board on a smaller panel: the same firmware,
+# built under its own name (USB device, MIDI and audio ports, version tag):
+#   cmake -S . -B build_sister -DSTEP_BOARD_NAME="Step Sister"
+set(STEP_BOARD_NAME "" CACHE STRING "Board name (empty: Step Mother)")
+if(STEP_BOARD_NAME)
+  target_compile_definitions(stepmother2 PRIVATE FIRMWARE_BOARD_NAME="${STEP_BOARD_NAME}")
+endif()
 pico_enable_stdio_usb(stepmother2 0)
 pico_enable_stdio_uart(stepmother2 0)
 pico_set_binary_type(stepmother2 copy_to_ram)
