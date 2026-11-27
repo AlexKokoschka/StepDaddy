@@ -23,3 +23,4 @@ firmware/*/voice/out/
 firmware/*/voice/midi_lead_ubsan
 firmware/*/voice/od_chord_ubsan
 firmware/*/verify.log
+firmware/*/verify_sister.log

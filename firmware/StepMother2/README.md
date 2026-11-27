@@ -1,22 +1,26 @@
-# Step Mother 2 (RP2040) firmware 1.2.0
+# Step Mother (USB-C) and Step Sister (RP2040) firmware 1.4.0
 
-StepBro and Yummy Gummy in one firmware, for the Step Mother 2 (RP2040,
-200 MHz, 48 kHz USB audio). Shift + Bank + Play switches the panel between
-StepBro and Yummy; both keep playing. The version is in
-`src/firmware_version.h`, shared with the Step Mother 1 (Teensy 4.1: same
-firmware, same version). History: `CHANGELOG.md`.
+StepBro and Yummy Gummy in one firmware, for the Step Mother (USB-C) and the
+Step Sister (RP2040, 200 MHz, 48 kHz USB audio). The Step Sister is the same
+board on a smaller panel, so it runs the same code, built under its own name
+(`-DSTEP_BOARD_NAME="Step Sister"`): only the USB name and the version tag
+differ. Shift + Bank + Play switches the panel between StepBro and Yummy; both
+keep playing. The version is in `src/firmware_version.h`, shared with the Step
+Mother (USB micro, Teensy 4.1: same firmware, same version). History:
+`CHANGELOG.md`.
 
 ## Install
 
-With **StepDaddy** (the updater): choose Step Mother 2 (RP2040) and follow it, or let it detect the board. It asks for
+With **StepDaddy** (the updater): let it detect the board, or choose Step Mother (USB-C) or Step Sister. It asks for
 **Glide + Function** held while plugging in USB (Shift + Clear on older
 panels), which opens the RPI-RP2 drive, then copies the firmware on and checks
 it arrived. By hand: same key combination, then copy
-`StepMother2_firmware_v<version>.uf2` onto RPI-RP2. A brand-new board with
+`StepMother2_firmware_v<version>.uf2` (Step Mother) or
+`StepSister_firmware_v<version>.uf2` (Step Sister) onto RPI-RP2. A brand-new board with
 nothing installed opens RPI-RP2 by itself when plugged in.
 
-The board then shows up as **Step Mother** (MIDI port and 48 kHz audio
-interface), in both editing levels. Open/monitor the audio input before
+The board then shows up as **Step Mother** or **Step Sister** (MIDI port and
+48 kHz audio interface), in both editing levels. Open/monitor the audio input before
 playback, enable MIDI clock/Sync and start the host. StepBro sends channel 1;
 Yummy receives channel 2 by default.
 
@@ -133,7 +137,13 @@ cd firmware/StepMother2
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --parallel 4 > build-final.log 2>&1
 sh tests/run.sh > tests-final.log 2>&1
-python3 tools/verify_release.py
+python3 tools/verify_release.py          # dist/StepMother2_firmware.uf2
+
+# the Step Sister: the same code under its own name
+mkdir -p build_sister
+cmake -S . -B build_sister -DCMAKE_BUILD_TYPE=Release -DSTEP_BOARD_NAME="Step Sister" > build_sister/build-final.log 2>&1
+cmake --build build_sister --parallel 4 >> build_sister/build-final.log 2>&1
+python3 tools/verify_release.py sister   # dist/StepSister_firmware.uf2
 ```
 
 The source tests include the supplied six-knob/Drive stress tests and new save

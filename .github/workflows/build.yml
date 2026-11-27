@@ -1,10 +1,11 @@
 name: Build firmware and StepDaddy
 
-# The Step Mother firmware (StepBro and Yummy Gummy in one): Step Mother 1
-# (Teensy 4.1, pinned Teensyduino subset in firmware/StepMother/vendor) and
-# Step Mother 2 (RP2040, Pico SDK, firmware/StepMother2): build, host tests
-# and release checks (memory guards, USB name, version tag). StepDaddy, the
-# updater, bundles both images.
+# The Step Mother firmware (StepBro and Yummy Gummy in one): Step Mother USB
+# micro (Teensy 4.1, pinned Teensyduino subset in firmware/StepMother/vendor),
+# and Step Mother USB-C and Step Sister (RP2040, Pico SDK, firmware/StepMother2:
+# one code base, built once per board name): build, host tests and release
+# checks (memory guards, USB name, version tag). StepDaddy, the updater,
+# bundles all three images.
 on:
   push:
     branches: [main]
@@ -87,7 +88,7 @@ jobs:
 
   # =========================================================================
   mother2:
-    name: Step Mother 2 (RP2040)
+    name: Step Mother USB-C and Step Sister (RP2040)
     needs: version
     runs-on: ubuntu-24.04
     env:
@@ -139,12 +140,29 @@ jobs:
           python3 tools/verify_release.py > verify.log 2>&1 || { tail -15 verify.log | sed 's/^/::error::/'; exit 1; }
           cat verify.log
 
+      # The Step Sister: the same code under its own name (USB device, MIDI and
+      # audio ports, version tag), checked the same way.
+      - name: Build Step Sister
+        run: |
+          mkdir -p build_sister
+          cmake -S . -B build_sister -DCMAKE_BUILD_TYPE=Release -DSTEP_BOARD_NAME="Step Sister" > build_sister/build-final.log 2>&1 &&
+            cmake --build build_sister --parallel 4 >> build_sister/build-final.log 2>&1 ||
+            { tail -25 build_sister/build-final.log | sed 's/^/::error::/'; exit 1; }
+          tail -3 build_sister/build-final.log
+
+      - name: Release checks, Step Sister
+        run: |
+          python3 tools/verify_release.py sister > verify_sister.log 2>&1 || { tail -15 verify_sister.log | sed 's/^/::error::/'; exit 1; }
+          cat verify_sister.log
+
       - name: Collect
         run: |
           V="${{ needs.version.outputs.version }}"
           mkdir -p "$GITHUB_WORKSPACE/out"
           cp dist/StepMother2_firmware.uf2 "$GITHUB_WORKSPACE/out/StepMother2_firmware_v${V}.uf2"
           cp dist/StepMother2_firmware.uf2 "$GITHUB_WORKSPACE/out/StepMother2_firmware.uf2"
+          cp dist/StepSister_firmware.uf2 "$GITHUB_WORKSPACE/out/StepSister_firmware_v${V}.uf2"
+          cp dist/StepSister_firmware.uf2 "$GITHUB_WORKSPACE/out/StepSister_firmware.uf2"
           ls -la "$GITHUB_WORKSPACE/out"
 
       - uses: actions/upload-artifact@v5
@@ -170,7 +188,7 @@ jobs:
           name: mother2
           path: incoming
       - name: Tests
-        run: python3 updater/test_step_daddy.py incoming/StepMother_firmware.hex incoming/StepMother2_firmware.uf2
+        run: python3 updater/test_step_daddy.py incoming/StepMother_firmware.hex incoming/StepMother2_firmware.uf2 incoming/StepSister_firmware.uf2
 
   # =========================================================================
   updater:
@@ -323,6 +341,7 @@ jobs:
             --name StepDaddy \
             --add-data "StepMother_firmware.hex${SEP}." \
             --add-data "StepMother2_firmware.uf2${SEP}." \
+            --add-data "StepSister_firmware.uf2${SEP}." \
             --add-binary "${LOADER}${SEP}." \
             step_daddy.py
           ls -la dist
@@ -387,6 +406,7 @@ jobs:
           mkdir -p "$STAGE/firmware" "$STAGE/updater"
           cp "incoming/mother/StepMother_firmware_v${V}.hex" "$STAGE/firmware/"
           cp "incoming/mother2/StepMother2_firmware_v${V}.uf2" "$STAGE/firmware/"
+          cp "incoming/mother2/StepSister_firmware_v${V}.uf2" "$STAGE/firmware/"
           cp incoming/StepDaddy-macOS/StepDaddy.dmg "$STAGE/updater/StepDaddy-macOS-v${V}.dmg"
           cp incoming/StepDaddy-Windows/StepDaddy.exe "$STAGE/updater/StepDaddy-Windows-v${V}.exe"
           {
@@ -400,8 +420,9 @@ jobs:
             echo
             echo "| Board | File | Installed with |"
             echo "|---|---|---|"
-            echo "| Step Mother 1 (Teensy 4.1) | \`firmware/StepMother_firmware_v${V}.hex\` | StepDaddy, or Teensy Loader |"
-            echo "| Step Mother 2 (RP2040) | \`firmware/StepMother2_firmware_v${V}.uf2\` | StepDaddy, or copy onto RPI-RP2 (Glide + Function at power-up) |"
+            echo "| Step Mother, USB micro (Teensy 4.1) | \`firmware/StepMother_firmware_v${V}.hex\` | StepDaddy, or Teensy Loader |"
+            echo "| Step Mother, USB-C (RP2040) | \`firmware/StepMother2_firmware_v${V}.uf2\` | StepDaddy, or copy onto RPI-RP2 (Glide + Function at power-up) |"
+            echo "| Step Sister (RP2040) | \`firmware/StepSister_firmware_v${V}.uf2\` | StepDaddy, or copy onto RPI-RP2 (Glide + Function at power-up) |"
             echo
             echo "## StepDaddy (the updater)"
             echo

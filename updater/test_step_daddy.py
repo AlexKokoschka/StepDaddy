@@ -2,7 +2,7 @@
 """Tests StepDaddy against a simulated Teensy loader, with the real firmware
 file CI just built.
 
-usage: test_step_daddy.py StepMother_firmware.hex StepMother2_firmware.uf2
+usage: test_step_daddy.py StepMother_firmware.hex StepMother2_firmware.uf2 StepSister_firmware.uf2
 """
 import builtins, io, os, shutil, sys, tempfile
 from contextlib import redirect_stdout
@@ -38,10 +38,11 @@ def run(argv, env, answers=()):
 
 
 def main():
-    mother, mother2 = Path(sys.argv[1]), Path(sys.argv[2])
+    mother, mother2, sister = Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3])
     res = Path(tempfile.mkdtemp())
     shutil.copy(mother, res / sd.MOTHER_FILE)
     shutil.copy(mother2, res / sd.MOTHER2_FILE)
+    shutil.copy(sister, res / sd.SISTER_FILE)
     sd.resource_dir = lambda: res
 
     # 1. The version tag in the real image
@@ -52,6 +53,9 @@ def main():
     m2 = sd.firmware_tag(res / sd.MOTHER2_FILE)
     print(f"bundled RP2040: {m2}")
     check(m2 and m2[0] == "Step Mother" and m2[1] == mt[1], "RP2040 .uf2 carries the same version tag")
+    ss = sd.firmware_tag(res / sd.SISTER_FILE)
+    print(f"bundled Step Sister: {ss}")
+    check(ss and ss[0] == "Step Sister" and ss[1] == mt[1], "Step Sister .uf2 carries its own name and the same version")
 
     # 2. A firmware file for another board is refused
     other = res / "other.hex"
@@ -59,7 +63,7 @@ def main():
     other.write_text("".join(f":{len(c):02X}{i:04X}00{c.hex().upper()}00\n"
                              for i, c in ((i, tag[i:i + 16]) for i in range(0, len(tag), 16))))
     code, out = run(["--firmware", str(other)], {})
-    check(code == 1 and "not for the Step Mother" in out, "a firmware file for another board is refused")
+    check(code == 1 and "not for the Step Mother (USB micro)" in out, "a firmware file for another board is refused")
 
     # 3. Step Mother 1: a Teensy with a serial port is asked to restart at 134
     #    baud, then the loader installs; without one, the key instructions
@@ -88,7 +92,7 @@ def main():
     check(isinstance(sd.find_teensy_serial_ports(), list) and sd.request_teensy_reboot("/nonexistent/port") is False,
           "Step Mother: real port search / request are safe with no Teensy (or no pyserial)")
 
-    # 4. Step Mother 2 (RP2040): detection, the question, and the copy onto RPI-RP2
+    # 4. Step Mother USB-C (RP2040): detection, the question, and the copy onto RPI-RP2
     drive = Path(tempfile.mkdtemp())
     (drive / "INFO_UF2.TXT").write_text("UF2 Bootloader v3.0\nModel: Raspberry Pi RP2\nBoard-ID: RPI-RP2\n")
     real = (sd.find_rp2040_drive, sd.find_teensy_serial_ports, sd.time.sleep)
@@ -109,9 +113,10 @@ def main():
     cleanup()
     (drive / sd.MOTHER2_FILE).unlink(missing_ok=True)
     sd.find_rp2040_drive = present_then_gone()
+    shutil.copy(mother2, drive / "CURRENT.UF2")   # the board already runs Step Mother firmware
     code, out = run([], {})
-    check(code == 0 and "Found a Step Mother 2 (RP2040)" in out and (drive / sd.MOTHER2_FILE).exists()
-          and f"Step Mother 2 has Step Mother firmware v{m2[1]}" in out,
+    check(code == 0 and "Found a Step Mother (USB-C) in update mode" in out and (drive / sd.MOTHER2_FILE).exists()
+          and f"Step Mother (USB-C) has Step Mother firmware v{m2[1]}" in out,
           "Step Mother 2: RPI-RP2 drive detected, .uf2 copied")
     check((drive / sd.MOTHER2_FILE).read_bytes() == mother2.read_bytes(), "Step Mother 2: the copied file is the bundled image")
 
@@ -131,10 +136,10 @@ def main():
     # drive never appears: fails cleanly
     cleanup()
     sd.find_rp2040_drive = lambda: None
-    real_wait = sd.flash_step_mother_2
-    sd.flash_step_mother_2 = lambda p, wait_seconds=0.0: real_wait(p, wait_seconds=0.0)
+    real_wait = sd.flash_rp2040
+    sd.flash_rp2040 = lambda p, product="mother2", wait_seconds=0.0: real_wait(p, product, wait_seconds=0.0)
     code, out = run(["--product", "mother2"], {})
-    sd.flash_step_mother_2 = real_wait
+    sd.flash_rp2040 = real_wait
     check(code == 1 and "did not appear" in out, "Step Mother 2: no drive: clear failure")
 
     # drive stays after the copy: reported as failed
@@ -143,7 +148,43 @@ def main():
     code, out = run(["--product", "mother2"], {})
     check(code == 1 and "still there" in out, "Step Mother 2: drive still present after copy is a failure")
 
-    # nothing detected: the question, both answers
+    # Step Sister: recognised by the firmware already on it
+    cleanup()
+    shutil.copy(sister, drive / "CURRENT.UF2")
+    sd.find_rp2040_drive = lambda: None if (drive / sd.SISTER_FILE).exists() else drive
+    code, out = run([], {})
+    check(code == 0 and "Found a Step Sister in update mode" in out and (drive / sd.SISTER_FILE).exists()
+          and not (drive / sd.MOTHER2_FILE).exists() and f"Step Sister has Step Sister firmware v{ss[1]}" in out,
+          "Step Sister: recognised from CURRENT.UF2, the Step Sister .uf2 copied")
+    check((drive / sd.SISTER_FILE).read_bytes() == sister.read_bytes(), "Step Sister: the copied file is the bundled image")
+
+    # a blank RP2040 board: asked Step Mother or Step Sister
+    cleanup(); (drive / "CURRENT.UF2").write_bytes(b"\xff" * 4096)
+    code, out = run([], {}, answers=["2"])
+    check(code == 0 and "no firmware on it yet" in out and (drive / sd.SISTER_FILE).exists(),
+          "Blank RP2040 board: asks, answer 2 installs the Step Sister firmware")
+    cleanup()
+    sd.find_rp2040_drive = present_then_gone()
+    code, out = run([], {}, answers=["1"])
+    check(code == 0 and (drive / sd.MOTHER2_FILE).exists(), "Blank RP2040 board: answer 1 installs the Step Mother firmware")
+
+    # the wrong RP2040 firmware for the board on it: asked first, no by default
+    cleanup(); shutil.copy(sister, drive / "CURRENT.UF2")
+    code, out = run(["--product", "mother2"], {}, answers=[""])
+    check(code == 1 and "has the Step Sister firmware" in out and not list(drive.glob("Step*.uf2")),
+          "Step Sister board, Step Mother firmware chosen: asked, nothing copied without a yes")
+    code, out = run(["--product", "mother2"], {}, answers=["y"])
+    check(code == 0 and (drive / sd.MOTHER2_FILE).exists(), "... and installed after a yes")
+    cleanup()
+    sd.find_rp2040_drive = lambda: None if (drive / sd.SISTER_FILE).exists() else drive
+    code, out = run(["--firmware", str(res / sd.SISTER_FILE)], {})
+    check(code == 0 and (drive / sd.SISTER_FILE).exists() and "Step Sister has" in out,
+          "a Step Sister .uf2 passed with --firmware targets the Step Sister")
+    code, out = run(["--product", "sister", "--firmware", str(res / sd.MOTHER2_FILE)], {})
+    check(code == 1 and "not for the Step Sister" in out, "the Step Mother .uf2 is refused for the Step Sister")
+    (drive / "CURRENT.UF2").unlink()
+
+    # nothing detected: the question, all answers
     cleanup()
     sd.find_rp2040_drive = lambda: None
     sd.teensy_loader_path = lambda: Path("/fake/teensy_loader_cli")
@@ -153,13 +194,20 @@ def main():
     check(code == 0 and "Which board do you have?" in out and ran2 and ran2[0][-1] == str(res / sd.MOTHER_FILE),
           "Nothing detected: asks, answer 1 installs on the Teensy")
     sd.find_rp2040_drive = present_then_gone()
-    code, out = run([], {}, answers=[])
-    check(code == 0, "RPI-RP2 drive wins over asking")
+    code, out = run([], {}, answers=["1"])
+    check(code == 0 and "Which board do you have?" not in out and "no firmware on it yet" in out,
+          "RPI-RP2 drive without firmware: only asks Step Mother (USB-C) or Step Sister")
     cleanup()
     first = iter([None])   # detection finds nothing, then the board is in update mode
     sd.find_rp2040_drive = lambda: next(first, None if (drive / sd.MOTHER2_FILE).exists() else drive)
     code, out = run([], {}, answers=["x", "2"])
-    check(code == 0 and "Type 1 or 2" in out, "Nothing detected: asks, junk is re-asked, answer 2 installs on the RP2040")
+    check(code == 0 and "Type 1, 2 or 3" in out and (drive / sd.MOTHER2_FILE).exists(),
+          "Nothing detected: asks, junk is re-asked, answer 2 installs on the Step Mother (USB-C)")
+    cleanup()
+    first = iter([None])
+    sd.find_rp2040_drive = lambda: next(first, None if (drive / sd.SISTER_FILE).exists() else drive)
+    code, out = run([], {}, answers=["3"])
+    check(code == 0 and (drive / sd.SISTER_FILE).exists(), "Nothing detected: answer 3 installs on the Step Sister")
 
     # --firmware picks the board by suffix; a wrong suffix for --product is refused
     code, out = run(["--product", "mother2", "--firmware", str(res / sd.MOTHER_FILE)], {})

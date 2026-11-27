@@ -16,14 +16,17 @@ Shift + Bank + Play switches the panel between them, and both keep playing.
 
 | Board | Chip | Clock | Firmware file | Installs through |
 |---|---|---|---|---|
-| Step Mother 1 | Teensy 4.1 (i.MX RT1062, one core) | 600 MHz | `.hex` | The Teensy bootloader |
-| Step Mother 2 | RP2040 (two cores) | 200 MHz | `.uf2` | The RPI-RP2 drive (copy the file onto it) |
+| Step Mother (USB micro) | Teensy 4.1 (i.MX RT1062, one core) | 600 MHz | `.hex` | The Teensy bootloader |
+| Step Mother (USB-C) | RP2040 (two cores) | 200 MHz | `.uf2` | The RPI-RP2 drive (copy the file onto it) |
+| Step Sister | RP2040 (two cores) | 200 MHz | `.uf2` | The RPI-RP2 drive (copy the file onto it) |
 
-The two boards run the same firmware, built separately: the Teensy one in
+The boards run the same firmware, built separately: the Teensy one in
 `firmware/StepMother/`, the RP2040 one in `firmware/StepMother2/` (Pico SDK 2.1.1,
-CMake, Arm GNU 13.2.Rel1; its README has the build commands). Most of this guide
-is written for the Teensy; the RP2040 differences are in
-[the RP2040 notes](#step-mother-2-rp2040).
+CMake, Arm GNU 13.2.Rel1; its README has the build commands). The Step Sister
+is the USB-C Step Mother's board on a smaller panel: the same RP2040 code, built
+a second time with `-DSTEP_BOARD_NAME="Step Sister"`, which changes only the
+USB name and the version tag. Most of this guide is written for the Teensy; the
+RP2040 differences are in [the RP2040 notes](#step-mother-usb-c-and-step-sister-rp2040).
 
 This guide covers three paths:
 
@@ -298,20 +301,25 @@ Install PJRC's Teensy Loader (it comes with Teensyduino, or on its own from
 pjrc.com). Open the `.hex` in it and turn on Auto. Then hold Glide + Function
 while plugging in USB; the loader programs the board and restarts it.
 
-### Step Mother 2 (RP2040)
+### Step Mother USB-C and Step Sister (RP2040)
 
-StepDaddy detects an RP2040 that is already in update mode, copies the `.uf2`
-onto its RPI-RP2 drive and the board restarts by itself. To get into update mode
+StepDaddy detects an RP2040 that is already in update mode, reads the board
+name from the firmware already on it (the drive's `CURRENT.UF2`) to pick the
+Step Mother or the Step Sister image, copies the `.uf2` onto its RPI-RP2 drive
+and the board restarts by itself. To get into update mode
 hold Glide + Function while plugging in USB (Shift + Clear on older panels); a
 brand-new board opens RPI-RP2 on its own. There is no USB serial port on this
 firmware, so unlike the Teensy it cannot be restarted into update mode without
-the keys. If StepDaddy can find neither board it asks which one you have. Use
-`--product mother2` to skip detection. Without StepDaddy: copy
-`StepMother2_firmware_v<version>.uf2` onto the RPI-RP2 drive yourself.
+the keys. If StepDaddy can find no board, or the board is blank, it asks which
+one you have. Use `--product mother2` or `--product sister` to skip detection.
+Without StepDaddy: copy `StepMother2_firmware_v<version>.uf2` or
+`StepSister_firmware_v<version>.uf2` onto the RPI-RP2 drive yourself.
 
 Build: `cd firmware/StepMother2`, set `PICO_SDK_PATH` and `PICO_TOOLCHAIN_PATH`
 as in its README, then `cmake -S . -B build`, `cmake --build build`,
-`sh tests/run.sh` and `python3 tools/verify_release.py`. Saves live in two flash
+`sh tests/run.sh` and `python3 tools/verify_release.py`; for the Step Sister,
+`cmake -S . -B build_sister -DSTEP_BOARD_NAME="Step Sister"`, build it the same
+way (log in `build_sister/build-final.log`) and `python3 tools/verify_release.py sister`. Saves live in two flash
 banks at 0x30000 and 0x38000 that an update leaves untouched; the linker stops
 the build if the program grows into them.
 
