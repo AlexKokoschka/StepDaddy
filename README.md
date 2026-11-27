@@ -8,8 +8,9 @@ MIDI step sequencer, and **Yummy Gummy**, a 303-style bass synth with its own
 sequencer that streams 48 kHz audio to the computer over USB.
 **Shift + Bank + Play** switches the panel between them; both keep playing.
 **StepDaddy**, the updater, installs the firmware without opening the
-enclosure. The PCB and enclosure are open hardware too, in the
-**[StepMother](https://github.com/AlexKokoschka/StepMother)** repository.
+enclosure. The PCBs and enclosures are open hardware too, in the
+**[StepMother](https://github.com/AlexKokoschka/StepMother)** and
+**[StepSister](https://github.com/AlexKokoschka/StepSister)** repositories.
 
 | | Step Mother (USB micro) | Step Mother (USB-C) | Step Sister |
 |---|---|---|---|
@@ -72,7 +73,7 @@ before anything else, so it works even if the rest of the firmware misbehaves.
   [Yummy Gummy](docs/manuals/Yummy_Quick_Reference_v1.3.0.pdf).
 - **[Developer guide](docs/DEVELOPER_GUIDE.md)**: changing the firmware,
   writing your own, installing it, and the panel's wiring.
-- **Hardware:** the [StepMother](https://github.com/AlexKokoschka/StepMother) repository (PCB and enclosure).
+- **Hardware:** the [StepMother](https://github.com/AlexKokoschka/StepMother) and [StepSister](https://github.com/AlexKokoschka/StepSister) repositories (PCBs and enclosures).
 
 ## Layout
 
@@ -123,7 +124,8 @@ The firmware and updater are free software: you can redistribute them and/or
 modify them under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or (at your
 option) any later version. See `LICENSE`. The hardware, in the
-[StepMother](https://github.com/AlexKokoschka/StepMother) repository, is
+[StepMother](https://github.com/AlexKokoschka/StepMother) and
+[StepSister](https://github.com/AlexKokoschka/StepSister) repositories, is
 licensed under CERN-OHL-S-2.0.
 
 Third-party code (`firmware/StepMother/vendor/`, and the Pico SDK and TinyUSB that
